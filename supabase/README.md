@@ -37,23 +37,38 @@ Supabase dashboard → **SQL Editor** → run, in filename order:
 `20260910140000_orders.sql`, `20260910150000_order_status_workflow.sql`, then
 `seed.sql`.
 
+## Environment
+
+`cp .env.example .env.local` and fill it in. `.env.local` (and any `.env*`) is
+git-ignored; **only `.env.example` is tracked — never put real keys in it.**
+
+| Variable | Scope | Needed for |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | public | admin panel, real content; **also read at build time** for the CSP + `next/image` host — set it before `next build` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | admin panel, real content (RLS-constrained) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **server only** | writing checkout orders. In `NODE_ENV=production` the checkout **refuses** an order if this is missing (it will not silently drop it). Never `NEXT_PUBLIC_`. |
+| `SITE_URL` | public | canonical / OG / sitemap / robots URLs. Optional; falls back to Vercel vars, then `http://localhost:3000`. |
+
 ## Create an admin
 
 1. **Authentication → Users → Add user** (or `supabase auth admin create-user`).
-   Give it an email + password. There is no public sign-up.
-2. Add that user to the allow-list:
+   Give it an email + password — passwords are hashed by Supabase Auth; there is
+   no public sign-up and no password is ever stored in this repo.
+2. Add that user to the allow-list, either:
+
+   ```bash
+   npm run admin:grant -- you@example.com          # uses .env.local
+   # or: node --env-file=.env scripts/grant-admin.mjs you@example.com
+   ```
+
+   or by hand:
 
    ```sql
    insert into public.admins (user_id, note)
    select id, 'founder' from auth.users where email = 'you@example.com';
    ```
 
-3. `cp .env.example .env.local` (`.env.local` is git-ignored — never put real
-   keys in `.env.example`). Fill `NEXT_PUBLIC_SUPABASE_URL`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (used
-   server-side by the checkout to persist orders — the checkout still completes
-   without it, but no order row is written; keep it out of any `NEXT_PUBLIC_`
-   name). `npm run dev`, visit `/admin`.
+3. `npm run dev`, visit `/admin`.
 
 Revoke access with `delete from public.admins where user_id = '<uuid>';`.
 

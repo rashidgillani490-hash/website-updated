@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed:generate": "node --experimental-strip-types scripts/generate-supabase-seed.mts"
+    "seed:generate": "node --experimental-strip-types scripts/generate-supabase-seed.mts",
+    "admin:grant": "node --env-file=.env.local scripts/grant-admin.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",

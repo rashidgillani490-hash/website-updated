@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { buildOrder, orderReference, toOrderSummary } from "./orders";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildOrder, orderReference, persistOrder, toOrderSummary } from "./orders";
 import type { OrderItem } from "./types";
 
 const items: OrderItem[] = [
@@ -62,6 +62,52 @@ describe("buildOrder", () => {
     expect(order.id).toBeTruthy();
     expect(order.reference).toMatch(/^ML-/);
     expect(order.currency).toBe("USD");
+  });
+});
+
+describe("persistOrder — not configured", () => {
+  let infoSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    // Force "Supabase not configured".
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+  });
+  afterEach(() => {
+    infoSpy.mockRestore();
+    errorSpy.mockRestore();
+    vi.unstubAllEnvs();
+  });
+
+  const order = buildOrder({
+    customer: {
+      name: "A. Dubois",
+      phone: "+1 415 555 0134",
+      address: "9 Rue de Sévigné",
+      city: "Paris",
+    },
+    items,
+    paymentMethod: "cod",
+    currency: "USD",
+  });
+
+  it("REFUSES the order in production (no fake success)", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const result = await persistOrder(order);
+    expect(result).toEqual({ ok: false });
+    expect(errorSpy).toHaveBeenCalled();
+    expect(infoSpy).not.toHaveBeenCalled();
+  });
+
+  it("allows the flow to complete in dev / test (no persistence)", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const result = await persistOrder(order);
+    expect(result).toEqual({ ok: true });
+    expect(infoSpy).toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 });
 

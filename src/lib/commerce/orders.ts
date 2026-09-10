@@ -87,16 +87,26 @@ function serviceConfigured(): boolean {
 /**
  * Write the order. Customers are anonymous, so RLS blocks the anon role from
  * the `orders` tables entirely — the service-role client (server-only, key
- * never shipped) is the single write path. When Supabase is not configured the
- * order is logged and the checkout still succeeds, so local dev / preview keep
- * working end to end.
+ * never shipped) is the single write path.
+ *
+ * Not-configured behaviour:
+ *   - `NODE_ENV === "production"` (any real deployment, incl. Vercel preview):
+ *     FAIL — a live checkout must never accept a COD order it cannot record.
+ *   - otherwise (local `next dev` / test): log and return ok, so the flow can
+ *     be exercised end to end without a backend.
  */
 export async function persistOrder(
   order: Order,
 ): Promise<{ ok: true } | { ok: false }> {
   if (!serviceConfigured()) {
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        `[commerce] persistOrder ${order.reference}: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured — refusing to accept an unrecorded order.`,
+      );
+      return { ok: false };
+    }
     console.info(
-      `[commerce] Supabase not configured — order ${order.reference} not persisted (${order.items.length} lines, ${order.currency} ${order.total}).`,
+      `[commerce] Supabase not configured — order ${order.reference} not persisted (dev: ${order.items.length} lines, ${order.currency} ${order.total}).`,
     );
     return { ok: true };
   }
@@ -135,8 +145,17 @@ export async function persistOrder(
       })),
     );
     if (itemsError) {
-      // Best effort: don't leave a headless order behind.
-      await db.from("orders").delete().eq("id", order.id);
+      // Roll the order row back so a failed line insert doesn't leave a
+      // headless order. Surface it if the rollback itself fails.
+      const { error: rollbackError } = await db
+        .from("orders")
+        .delete()
+        .eq("id", order.id);
+      if (rollbackError) {
+        console.error(
+          `[commerce] persistOrder ${order.reference}: order_items insert failed and the order-row rollback also failed — a headless order row may remain.`,
+        );
+      }
       throw itemsError;
     }
 
