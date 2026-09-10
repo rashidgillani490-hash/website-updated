@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import type { Group } from "three";
 import { MathUtils } from "three";
+import type { StoryPose } from "./story";
 
 interface PerfumeBottleProps {
   /** Hex accent that tints the glass. */
@@ -16,6 +17,14 @@ interface PerfumeBottleProps {
    * a fixed three-quarter pose. `<Float>` is disabled by the parent.
    */
   reducedMotion?: boolean;
+  /**
+   * Scroll-driven pose (cinematic / showcase story). When provided the flacon
+   * stops its idle turn and follows this instead: `spin` sets the Y rotation,
+   * `capLift` raises the cap sub-group clear of the neck. Mutated in place by
+   * <ScrollDirector> each frame — never a new object — so it causes no React
+   * re-render. Absent on the plain hero/detail scene.
+   */
+  pose?: StoryPose;
 }
 
 /**
@@ -23,22 +32,60 @@ interface PerfumeBottleProps {
  * metal cap. Kept deliberately architectural so it reads as a brand object
  * rather than a product render.
  *
- * The `group` ref is the single handle for the future cinematic sequence
- * (revolve / cap-lift / spray); only the body glass is physically
- * transmissive — see the note on the inner volume below.
+ * The `group` ref drives the revolve; `cap` is its own sub-group so the
+ * cinematic story can lift it clear of the neck. Only the body glass is
+ * physically transmissive — see the note on the inner volume below.
  */
 export function PerfumeBottle({
   accent,
   pointer,
   reducedMotion = false,
+  pose,
 }: PerfumeBottleProps) {
   const group = useRef<Group>(null);
+  const cap = useRef<Group>(null);
 
   useFrame((_, delta) => {
     const g = group.current;
-    if (!g || reducedMotion) return;
-    // Continuous slow turn, plus an eased lean toward the cursor.
-    g.rotation.y += delta * 0.28;
+    const c = cap.current;
+    if (!g) return;
+
+    // Framerate-independent smoothing. `delta` can spike after a tab regains
+    // focus; clamp it so nothing lurches.
+    const dt = Math.min(delta, 0.1);
+
+    if (pose) {
+      // Scroll owns the motion. Damp toward the target so a fast flick of the
+      // wheel eases in rather than snapping; reduced motion tracks 1:1.
+      const yaw = pose.spin + pointer.x * 0.12;
+      g.rotation.y = reducedMotion ? yaw : MathUtils.damp(g.rotation.y, yaw, 6, dt);
+      g.rotation.x = reducedMotion
+        ? 0
+        : MathUtils.damp(g.rotation.x, pointer.y * 0.1, 4, dt);
+      g.position.x = 0;
+
+      if (c) {
+        const lift = pose.capLift;
+        const targetY = 1.62 + lift * 1.15;
+        const targetTilt = lift * 0.5;
+        const targetX = lift * 0.32;
+        if (reducedMotion) {
+          c.position.y = targetY;
+          c.rotation.z = targetTilt;
+          c.position.x = targetX;
+        } else {
+          c.position.y = MathUtils.damp(c.position.y, targetY, 8, dt);
+          c.rotation.z = MathUtils.damp(c.rotation.z, targetTilt, 8, dt);
+          c.position.x = MathUtils.damp(c.position.x, targetX, 8, dt);
+        }
+      }
+      return;
+    }
+
+    if (reducedMotion) return;
+
+    // Idle scene: continuous slow turn, plus an eased lean toward the cursor.
+    g.rotation.y += dt * 0.28;
     g.rotation.x = MathUtils.lerp(g.rotation.x, pointer.y * 0.18, 0.05);
     g.position.x = MathUtils.lerp(g.position.x, pointer.x * 0.15, 0.05);
   });
@@ -47,7 +94,7 @@ export function PerfumeBottle({
     <group
       ref={group}
       position={[0, -0.1, 0]}
-      rotation={reducedMotion ? [0.05, -0.5, 0] : [0, 0, 0]}
+      rotation={reducedMotion && !pose ? [0.05, -0.5, 0] : [0, 0, 0]}
     >
       {/* Body — the only transmissive surface. `transmission` forces three.js
           to render an extra opaque pass each frame and runs the heavy
@@ -81,25 +128,23 @@ export function PerfumeBottle({
       </RoundedBox>
 
       {/* Frosted collar — frosted look comes from high roughness, not
-          transmission. */}
+          transmission. Stays with the body when the cap lifts. */}
       <mesh position={[0, 1.28, 0]}>
         <cylinderGeometry args={[0.34, 0.4, 0.22, 48]} />
-        <meshPhysicalMaterial
-          color="#e9e4d8"
-          roughness={0.85}
-          metalness={0}
-        />
+        <meshPhysicalMaterial color="#e9e4d8" roughness={0.85} metalness={0} />
       </mesh>
 
-      {/* Cap — a distinct sub-group so a later phase can lift it clear. */}
-      <mesh position={[0, 1.62, 0]} castShadow>
-        <cylinderGeometry args={[0.38, 0.38, 0.5, 48]} />
-        <meshStandardMaterial color="#1b1b1d" roughness={0.35} metalness={0.9} />
-      </mesh>
-      <mesh position={[0, 1.9, 0]}>
-        <cylinderGeometry args={[0.4, 0.38, 0.08, 48]} />
-        <meshStandardMaterial color={accent} roughness={0.25} metalness={1} />
-      </mesh>
+      {/* Cap — its own sub-group so the story can lift it clear of the neck. */}
+      <group ref={cap} position={[0, 1.62, 0]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.38, 0.38, 0.5, 48]} />
+          <meshStandardMaterial color="#1b1b1d" roughness={0.35} metalness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.28, 0]}>
+          <cylinderGeometry args={[0.4, 0.38, 0.08, 48]} />
+          <meshStandardMaterial color={accent} roughness={0.25} metalness={1} />
+        </mesh>
+      </group>
     </group>
   );
 }

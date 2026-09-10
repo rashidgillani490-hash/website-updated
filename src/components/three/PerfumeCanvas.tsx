@@ -1,11 +1,15 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Float, PerspectiveCamera } from "@react-three/drei";
+import type { MotionValue } from "motion/react";
 import { PerfumeBottle } from "./PerfumeBottle";
 import { SceneEnvironment } from "./SceneEnvironment";
+import { ScrollDirector } from "./ScrollDirector";
+import { SprayParticles } from "./SprayParticles";
 import type { QualityProfile } from "./quality";
+import type { StoryMode, StoryPose } from "./story";
 
 interface PerfumeCanvasProps {
   accent: string;
@@ -18,6 +22,14 @@ interface PerfumeCanvasProps {
   quality: QualityProfile;
   /** Fired once the WebGL context exists (used to cross-fade the poster). */
   onCreated?: () => void;
+  /**
+   * Scroll progress of the surrounding story track. When present the flacon is
+   * driven by scroll (see <ScrollDirector>) instead of its idle turn.
+   */
+  scrollProgress?: MotionValue<number>;
+  /** `"cinematic"` (home story, adds cap-lift + spray) or `"showcase"`
+   *  (detail page, a bounded turn). Ignored without `scrollProgress`. */
+  story?: StoryMode;
 }
 
 /**
@@ -27,10 +39,12 @@ interface PerfumeCanvasProps {
  *
  * Render strategy is `frameloop="demand"`: nothing renders unless a frame is
  * requested. `FrameManager` requests one continuously while `active &&
- * !reducedMotion` (the flacon's slow turn needs it) and requests a single
- * frame on every state change (resume from pause, reduced-motion static
- * render). When the scene is off-screen or the tab is hidden, `active` is
- * false, no frames are requested, and the loop idles at zero cost.
+ * !reducedMotion` (the flacon's slow turn / the story's damping need it) and
+ * requests a single frame on every state change. <ScrollDirector> additionally
+ * requests a frame per scroll tick, so a reduced-motion story still tracks
+ * scroll without a running loop. When the scene is off-screen or the tab is
+ * hidden, `active` is false, no frames are requested, and the loop idles at
+ * zero cost.
  */
 export default function PerfumeCanvas({
   accent,
@@ -39,8 +53,16 @@ export default function PerfumeCanvas({
   reducedMotion,
   quality,
   onCreated,
+  scrollProgress,
+  story,
 }: PerfumeCanvasProps) {
+  const storyMode: StoryMode | undefined = scrollProgress ? story ?? "showcase" : undefined;
+  const scrollDriven = Boolean(scrollProgress && storyMode);
   const animate = active && !reducedMotion;
+
+  // One stable pose object for the whole scene lifetime — ScrollDirector writes
+  // it, PerfumeBottle and SprayParticles read it, no React state involved.
+  const pose = useRef<StoryPose>({ spin: 0, capLift: 0, spray: 0, dolly: 0 });
 
   return (
     <Canvas
@@ -68,8 +90,19 @@ export default function PerfumeCanvas({
           shadowMapSize={quality.shadowMapSize}
           castShadow={quality.shadows}
         />
+
+        {scrollDriven && scrollProgress ? (
+          <ScrollDirector
+            progress={scrollProgress}
+            pose={pose}
+            mode={storyMode as StoryMode}
+            reducedMotion={reducedMotion}
+            active={active}
+          />
+        ) : null}
+
         <Float
-          enabled={!reducedMotion}
+          enabled={!reducedMotion && !scrollDriven}
           speed={1.1}
           rotationIntensity={0.25}
           floatIntensity={0.5}
@@ -78,8 +111,19 @@ export default function PerfumeCanvas({
             accent={accent}
             pointer={pointer}
             reducedMotion={reducedMotion}
+            pose={scrollDriven ? pose.current : undefined}
           />
         </Float>
+
+        {storyMode === "cinematic" ? (
+          <SprayParticles
+            pose={pose.current}
+            accent={accent}
+            count={quality.sprayCount}
+            reducedMotion={reducedMotion}
+          />
+        ) : null}
+
         <ContactShadows
           position={[0, -1.7, 0]}
           opacity={0.45}
@@ -96,9 +140,9 @@ export default function PerfumeCanvas({
 
 /**
  * Drives `frameloop="demand"`. While `animate`, requests the next frame every
- * frame (keeps the continuous turn alive). On any `animate` change and on
- * mount, requests exactly one frame so a paused scene resumes and a
- * reduced-motion scene paints its static pose.
+ * frame (keeps the continuous turn / story damping alive). On any `animate`
+ * change and on mount, requests exactly one frame so a paused scene resumes and
+ * a reduced-motion scene paints its static pose.
  */
 function FrameManager({ animate }: { animate: boolean }) {
   const invalidate = useThree((s) => s.invalidate);

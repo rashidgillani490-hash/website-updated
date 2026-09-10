@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
+import { useScroll } from "motion/react";
 import type { Perfume, SiteSettings } from "@/lib/content";
 import { PerfumeExperience } from "@/components/three/PerfumeExperience";
 import { FragranceNotes } from "./FragranceNotes";
@@ -21,16 +22,29 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
   const size = perfume.sizes[sizeIndex];
   const paragraphs = toParagraphs(perfume.description);
 
+  // Same reusable animation system as the homepage story, in "showcase" mode:
+  // the selected perfume's flacon turns with scroll while its panel is in view.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: stageRef,
+    offset: ["start start", "end start"],
+  });
+
   return (
     <div className="pb-32">
       {/* Overview */}
       <Container bleed className="grid gap-14 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pt-24">
-        <div className="relative order-2 h-[60svh] min-h-[420px] overflow-hidden bg-ink-700 lg:order-1 lg:h-[80svh]">
+        <div
+          ref={stageRef}
+          className="relative order-2 h-[60svh] min-h-[420px] overflow-hidden bg-ink-700 lg:order-1 lg:h-[80svh]"
+        >
           <PerfumeExperience
             accent={perfume.accent}
             poster={perfume.hero.src}
             posterAlt={perfume.hero.alt}
             priorityPoster
+            scrollProgress={scrollYProgress}
+            story="showcase"
           />
         </div>
 

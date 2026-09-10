@@ -1,6 +1,6 @@
 import { contentRepository } from "@/lib/content";
 import { splitLines } from "@/lib/utils";
-import { Hero } from "@/components/home/Hero";
+import { CinematicPerfumeStory } from "@/components/home/CinematicPerfumeStory";
 import { ScrollStory } from "@/components/home/ScrollStory";
 import { FeaturedCollection } from "@/components/home/FeaturedCollection";
 import { NotesPhilosophy } from "@/components/home/NotesPhilosophy";
@@ -40,7 +40,8 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero
+      <CinematicPerfumeStory
+        brandName={settings.brandName}
         eyebrow={settings.tagline}
         titleLines={splitLines(
           settings.heroHeadline,
@@ -49,6 +50,11 @@ export default async function HomePage() {
         intro={
           settings.heroIntro?.trim() ||
           "Maison Lumière is a small Parisian house making auteur perfumes — each one signed, made in limited batches, and left exactly as it was composed."
+        }
+        brandStory={
+          settings.brandStory?.trim() ||
+          settings.homepageIntro?.trim() ||
+          settings.description
         }
         accent={opener?.accent ?? "#c7ac7c"}
         poster={opener?.hero.src ?? "/images/grain.svg"}

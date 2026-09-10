@@ -23,6 +23,8 @@ export interface QualityProfile {
   bakeContactShadow: boolean;
   antialias: boolean;
   powerPreference: PowerPreference;
+  /** Particle budget for the fragrance-spray scene (cinematic story only). */
+  sprayCount: number;
 }
 
 const DESKTOP: QualityProfile = {
@@ -34,6 +36,7 @@ const DESKTOP: QualityProfile = {
   bakeContactShadow: false,
   antialias: true,
   powerPreference: "high-performance",
+  sprayCount: 200,
 };
 
 const MOBILE: QualityProfile = {
@@ -45,6 +48,7 @@ const MOBILE: QualityProfile = {
   bakeContactShadow: true,
   antialias: true,
   powerPreference: "default", // don't force the discrete GPU / drain battery
+  sprayCount: 70,
 };
 
 export function qualityFor(isMobile: boolean): QualityProfile {

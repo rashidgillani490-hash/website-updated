@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useReducedMotion } from "motion/react";
+import { useReducedMotion, type MotionValue } from "motion/react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useWebGLSupport } from "@/hooks/useWebGLSupport";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ import { qualityFor } from "./quality";
  */
 const PerfumeCanvas = dynamic(() => import("./PerfumeCanvas"), { ssr: false });
 
+type StoryMode = "cinematic" | "showcase";
+
 interface PerfumeExperienceProps {
   accent?: string;
   /** Shown while the scene compiles, when WebGL is unavailable, and on error. */
@@ -23,6 +25,14 @@ interface PerfumeExperienceProps {
   posterAlt: string;
   className?: string;
   priorityPoster?: boolean;
+  /**
+   * Scroll progress (0..1) of a surrounding story track. When supplied the
+   * flacon is scroll-driven; `story` picks the choreography. Passing only a
+   * `MotionValue` keeps three.js out of the caller's bundle — this component
+   * forwards it untouched to the lazy canvas chunk.
+   */
+  scrollProgress?: MotionValue<number>;
+  story?: StoryMode;
 }
 
 /**
@@ -51,6 +61,8 @@ export function PerfumeExperience({
   posterAlt,
   className,
   priorityPoster = false,
+  scrollProgress,
+  story,
 }: PerfumeExperienceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pointer = useRef({ x: 0, y: 0 });
@@ -142,6 +154,8 @@ export function PerfumeExperience({
             reducedMotion={reducedMotion}
             quality={quality}
             onCreated={() => setCanvasReady(true)}
+            scrollProgress={scrollProgress}
+            story={story}
           />
         </CanvasErrorBoundary>
       ) : null}
