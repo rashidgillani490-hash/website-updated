@@ -18,14 +18,29 @@ const isProd = process.env.NODE_ENV === "production";
 /**
  * App-wide Content-Security-Policy.
  *
- * - `script-src` allows inline scripts because Next's App Router streams inline
- *   bootstrap/RSC `<script>` tags that are not hashed or nonced. `'unsafe-eval'`
- *   is added in development only (React Refresh / HMR need it); production runs
- *   without it — three.js / R3F / drei / motion / zod / supabase-js do not eval.
- * - `style-src` allows inline styles: motion and many components set `style={}`.
+ * Why not a nonce-based `script-src` (dropping `'unsafe-inline'`)?
+ * A per-request nonce can only be issued from middleware and only protects
+ * *dynamically rendered* responses. This storefront is deliberately static:
+ * `/`, `/collection` and `/fragrance/[slug]` are prerendered + ISR, so a nonce
+ * would be baked once at build time and reused for every visitor — no better
+ * than `'unsafe-inline'`, and Next explicitly advises against nonces on static
+ * pages. Making those routes `force-dynamic` to enable a nonce would trade the
+ * whole storefront's static delivery for a marginal gain, and would also mean
+ * running the Supabase-session middleware (currently `/admin` only) on every
+ * request. That is a real regression, so per Phase 12 we keep the compatible
+ * policy below. It is still strong: production has **no `'unsafe-eval'`**,
+ * `object-src 'none'`, `base-uri 'self'`, tight `default-src` / `connect-src` /
+ * `frame-ancestors`, and the app renders no user-supplied HTML anywhere.
+ *
+ * - `script-src` keeps `'unsafe-inline'` for Next's un-nonced streaming
+ *   bootstrap / RSC `<script>` tags. `'unsafe-eval'` is dev-only (React Refresh
+ *   / HMR); three.js / R3F / drei / motion / zod / supabase-js never eval.
+ * - `style-src` keeps `'unsafe-inline'`: `next/font` injects a `<style>` block
+ *   and many components set `style={}` (inline style *attributes* aren't
+ *   covered by hashes across browsers).
  * - `img-src` covers the next/image optimiser (`'self'`), blur/data URIs, admin
  *   upload previews (`blob:`) and public Storage objects on the Supabase host.
- * - `connect-src` lets the browser Supabase client talk to its own project
+ * - `connect-src` lets the browser Supabase client reach its own project
  *   (REST + realtime websocket); `ws:` is dev-only for HMR.
  * - `frame-ancestors 'none'` + `X-Frame-Options` block clickjacking of the
  *   storefront and, crucially, the admin panel.

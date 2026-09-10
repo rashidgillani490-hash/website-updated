@@ -45,8 +45,13 @@ export const orderCustomerSchema = z.object({
 export type OrderCustomerInput = z.infer<typeof orderCustomerSchema>;
 
 export const orderLineSchema = z.object({
-  slug: z.string().trim().min(1),
-  ml: z.coerce.number().int().positive(),
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Invalid item."),
+  ml: z.coerce.number().int().positive().max(100_000),
   qty: z.coerce.number().int().min(1).max(MAX_QTY),
   /** Display only — for a friendly "no longer available" message. The server
    *  re-prices from the catalogue regardless of anything the client sends. */
@@ -63,6 +68,9 @@ export const placeOrderSchema = z.object({
   items: orderLinesSchema,
   // One method today; `z.enum` keeps the door open for more.
   paymentMethod: z.enum(["cod"]),
+  /** Client-generated per checkout attempt. A retry with the same key returns
+   *  the first order's result instead of creating a duplicate. */
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;

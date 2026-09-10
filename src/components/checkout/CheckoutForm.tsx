@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart/CartProvider";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +33,17 @@ export function CheckoutForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string>();
   const [unavailable, setUnavailable] = useState<string[]>([]);
+
+  // One key per checkout attempt (per mount). Retrying a failed submit reuses
+  // it so the server can return the first result instead of a duplicate order;
+  // a fresh checkout gets a fresh mount + key. Omitted (undefined) on the rare
+  // browser without crypto.randomUUID — the server's content-hash dedupe still
+  // covers double-submits.
+  const idempotencyKey = useRef<string | undefined>(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : undefined,
+  ).current;
 
   const set = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -69,6 +80,7 @@ export function CheckoutForm() {
       },
       items: lines,
       paymentMethod: method,
+      idempotencyKey,
     };
 
     const parsed = placeOrderSchema.safeParse(payload);

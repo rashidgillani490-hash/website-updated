@@ -24,6 +24,14 @@ export default defineConfig({
           new URL("./src/test/server-only-stub.ts", import.meta.url),
         ),
       },
+      {
+        // `next/headers` only exists inside the Next request lifecycle; the
+        // checkout-action test drives it through this controllable stub.
+        find: "next/headers",
+        replacement: fileURLToPath(
+          new URL("./src/test/next-headers-stub.ts", import.meta.url),
+        ),
+      },
     ],
   },
 });

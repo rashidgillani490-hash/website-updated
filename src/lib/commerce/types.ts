@@ -52,6 +52,12 @@ export const DEFAULT_PAYMENT_METHOD: PaymentMethodId = "cod";
 export const MIN_QTY = 1;
 export const MAX_QTY = 99;
 
+/** A COD order this large is either tampering or a mistake — reject it rather
+ *  than commit an un-collectable delivery. Well above any realistic real order
+ *  (max line ~$400 × 99 qty × 50 lines would be ~$2M; a sane ceiling is far
+ *  lower). Tune with the catalogue. */
+export const MAX_ORDER_TOTAL = 50_000;
+
 /**
  * One line in the bag. `perfumeId` + `ml` identify it; the rest is a display
  * snapshot taken at add time.

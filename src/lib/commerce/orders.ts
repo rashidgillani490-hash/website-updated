@@ -142,8 +142,13 @@ export async function persistOrder(
 
     return { ok: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`[commerce] persistOrder ${order.reference} failed: ${message}`);
+    // Log a stable code, not the raw message — a PostgREST/Postgres error can
+    // echo column values, and this order carries customer PII.
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code: unknown }).code)
+        : "unknown";
+    console.error(`[commerce] persistOrder ${order.reference} failed (code ${code}).`);
     return { ok: false };
   }
 }
