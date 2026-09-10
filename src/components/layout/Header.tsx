@@ -7,6 +7,7 @@ import { useScrolled } from "@/hooks/useScrolled";
 import { cn } from "@/lib/utils";
 import { Navigation } from "./Navigation";
 import { MobileMenu } from "./MobileMenu";
+import { Logo } from "./Logo";
 
 interface HeaderProps {
   settings: SiteSettings;
@@ -35,13 +36,19 @@ export function Header({ settings }: HeaderProps) {
         )}
       >
         <div className="mx-auto flex max-w-[110rem] items-center justify-between px-[var(--spacing-gutter)] py-5">
-          <Link href="/" className="flex flex-col leading-none">
-            <span className="font-serif text-xl font-light tracking-[0.18em] text-ivory">
-              {settings.brandName}
-            </span>
-            <span className="mt-1 text-[0.55rem] uppercase tracking-[var(--tracking-luxe)] text-smoke">
-              {settings.tagline}
-            </span>
+          <Link href="/" className="flex flex-col leading-none" aria-label={settings.brandName}>
+            {settings.logoUrl ? (
+              <Logo settings={settings} className="h-8" />
+            ) : (
+              <>
+                <span className="font-serif text-xl font-light tracking-[0.18em] text-ivory">
+                  {settings.brandName}
+                </span>
+                <span className="mt-1 text-[0.55rem] uppercase tracking-[var(--tracking-luxe)] text-smoke">
+                  {settings.tagline}
+                </span>
+              </>
+            )}
           </Link>
 
           <div className="hidden lg:block">

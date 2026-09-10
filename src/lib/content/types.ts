@@ -107,11 +107,14 @@ export interface SiteSettings {
   addressLines: string[];
   /** Base ISO currency code, e.g. "USD". */
   currency: string;
-  /** Brand marks — Storage paths/URLs. Not yet surfaced in the UI. */
+  /** Brand marks — absolute URLs or Storage paths. `logoUrl` replaces the
+   *  wordmark in the header, footer and mobile menu; `faviconUrl` becomes the
+   *  document icon. Both fall back to the built-in treatment when absent. */
   logoUrl?: string;
   faviconUrl?: string;
-  /** Editable homepage copy. Mirrors the DB model; the Hero still takes
-   *  literal props today, so these are not read yet. */
+  /** Editable homepage copy, read directly by the home page:
+   *  `heroHeadline` (newline = line break) and `heroIntro` feed the Hero,
+   *  `homepageIntro` the house section, `brandStory` the collection lead-in. */
   heroHeadline?: string;
   heroIntro?: string;
   homepageIntro?: string;

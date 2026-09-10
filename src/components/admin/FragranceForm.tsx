@@ -54,7 +54,7 @@ export function FragranceForm({ perfume }: FragranceFormProps) {
     description: perfume?.description ?? "",
     availability: perfume?.availability ?? ("available" as PerfumeAvailability),
     featured: perfume?.featured ?? false,
-    isPublished: perfume ? true : true,
+    isPublished: perfume?.isPublished ?? true,
     displayOrder: String(perfume?.order ?? 0),
   });
 

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/content";
 import { Navigation } from "./Navigation";
+import { Logo } from "./Logo";
 import { easeLuxe } from "@/lib/motion/variants";
 
 interface MobileMenuProps {
@@ -40,9 +41,14 @@ export function MobileMenu({ open, onClose, settings }: MobileMenuProps) {
             <Link
               href="/"
               onClick={onClose}
+              aria-label={settings.brandName}
               className="font-serif text-lg tracking-[0.16em] text-ivory"
             >
-              {settings.brandName}
+              {settings.logoUrl ? (
+                <Logo settings={settings} className="h-7" />
+              ) : (
+                settings.brandName
+              )}
             </Link>
             <button
               type="button"

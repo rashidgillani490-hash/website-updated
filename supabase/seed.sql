@@ -15,7 +15,8 @@ values (
   '[{"label":"Collection","href":"/collection"},{"label":"The House","href":"/#house"},{"label":"Notes","href":"/#notes"}]'::jsonb, '[{"label":"Collection","href":"/collection"},{"label":"Contact","href":"/#contact"},{"label":"Admin","href":"/admin"}]'::jsonb, '[{"label":"Instagram","href":"https://instagram.com"},{"label":"Pinterest","href":"https://pinterest.com"}]'::jsonb,
   'atelier@maisonlumiere.example', ARRAY['9 Rue de Sévigné', '75004 Paris', 'France']::text[], 'USD',
   null, null,
-  $txt$The scent of a room at dusk$txt$, $txt$Maison Lumière is a small Parisian house making auteur perfumes — each one signed, made in limited batches, and left exactly as it was composed.$txt$,
+  $txt$The scent of
+a room at dusk$txt$, $txt$Maison Lumière is a small Parisian house making auteur perfumes — each one signed, made in limited batches, and left exactly as it was composed.$txt$,
   $txt$A small house, run deliberately slowly. One accord at a time, signed by the nose, made in small batches, kept as it was.$txt$, $txt$Maison Lumière is a small Parisian perfume house. Each composition is signed by its perfumer and made in limited batches, without reformulation.$txt$
 );
 

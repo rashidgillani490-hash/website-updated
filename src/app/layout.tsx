@@ -21,6 +21,7 @@ const sans = Jost({
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await contentRepository.getSettings();
+  const favicon = settings.faviconUrl?.trim();
   return {
     metadataBase: new URL("https://maisonlumiere.example"),
     title: {
@@ -33,6 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: settings.description,
       type: "website",
     },
+    ...(favicon ? { icons: { icon: favicon } } : {}),
     robots: { index: true, follow: true },
   };
 }

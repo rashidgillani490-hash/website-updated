@@ -1,9 +1,10 @@
 import type { SiteSettings } from "./types";
 
 /**
- * Default site settings. In a later phase these become editable in the Admin
- * Panel (Site Settings); for now they are the single source of truth for
- * brand copy, navigation and contact details.
+ * Default site settings. Editable in the Admin Panel (Site Settings) once
+ * Supabase is configured; otherwise this object is the single source of truth
+ * for brand copy, navigation and contact details. Every field here is consumed
+ * by the storefront — see `SiteSettings` in `types.ts` for where.
  */
 export const SITE_SETTINGS: SiteSettings = {
   brandName: "Maison Lumière",
@@ -30,9 +31,10 @@ export const SITE_SETTINGS: SiteSettings = {
   contactEmail: "atelier@maisonlumiere.example",
   addressLines: ["9 Rue de Sévigné", "75004 Paris", "France"],
   currency: "USD",
-  // Editable homepage copy — mirrors the DB model. The Hero still takes literal
-  // props today, so these are carried but not yet read by any component.
-  heroHeadline: "The scent of a room at dusk",
+  // Editable homepage copy. The home page reads these directly:
+  // heroHeadline / heroIntro feed the Hero, homepageIntro the house section,
+  // brandStory the featured-collection lead-in. `\n` in the headline is a line break.
+  heroHeadline: "The scent of\na room at dusk",
   heroIntro:
     "Maison Lumière is a small Parisian house making auteur perfumes — each one signed, made in limited batches, and left exactly as it was composed.",
   homepageIntro:

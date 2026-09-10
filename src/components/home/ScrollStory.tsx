@@ -13,6 +13,8 @@ interface StoryStep {
 interface ScrollStoryProps {
   eyebrow: string;
   heading: string;
+  /** Optional lead paragraph under the heading — the editable brand story. */
+  intro?: string;
   steps: StoryStep[];
 }
 
@@ -42,7 +44,12 @@ const prefersReduced = () =>
  * `scrollYProgress` listener — no per-element motion values bound through
  * `style`, which keeps it off motion's WAAPI mount path.
  */
-export function ScrollStory({ eyebrow, heading, steps }: ScrollStoryProps) {
+export function ScrollStory({
+  eyebrow,
+  heading,
+  intro,
+  steps,
+}: ScrollStoryProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
   const glyphRef = useRef<HTMLDivElement>(null);
@@ -120,6 +127,11 @@ export function ScrollStory({ eyebrow, heading, steps }: ScrollStoryProps) {
               <h2 className="mt-6 max-w-md font-serif text-4xl font-light leading-[1.05] text-ivory sm:text-5xl">
                 {heading}
               </h2>
+              {intro ? (
+                <p className="mt-6 max-w-md text-[0.95rem] leading-relaxed text-ivory-dim">
+                  {intro}
+                </p>
+              ) : null}
 
               <div className="mt-12 flex items-center gap-4">
                 <div className="relative h-40 w-px shrink-0 bg-line">

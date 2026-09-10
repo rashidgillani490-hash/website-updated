@@ -22,3 +22,17 @@ export function toParagraphs(text: string) {
     .map((p) => p.trim())
     .filter(Boolean);
 }
+
+/**
+ * Split a single-field headline into display lines on newlines, trimming blanks.
+ * Falls back to `fallback` when the value is empty. Used to feed editable
+ * one-field copy (e.g. `SiteSettings.heroHeadline`) into components that render
+ * a clipped line per array entry.
+ */
+export function splitLines(value: string | undefined | null, fallback: string) {
+  const source = (value ?? "").trim() || fallback;
+  return source
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/content";
 import { Container } from "@/components/ui/Container";
+import { Logo } from "./Logo";
 
 interface FooterProps {
   settings: SiteSettings;
@@ -14,9 +15,13 @@ export function Footer({ settings }: FooterProps) {
       <Container bleed className="py-20">
         <div className="grid gap-14 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="flex flex-col gap-5">
-            <span className="font-serif text-2xl font-light tracking-[0.16em] text-ivory">
-              {settings.brandName}
-            </span>
+            {settings.logoUrl ? (
+              <Logo settings={settings} className="h-9 self-start" />
+            ) : (
+              <span className="font-serif text-2xl font-light tracking-[0.16em] text-ivory">
+                {settings.brandName}
+              </span>
+            )}
             <p className="max-w-sm text-sm leading-relaxed text-ivory-dim">
               {settings.description}
             </p>

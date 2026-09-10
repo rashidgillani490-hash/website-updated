@@ -8,11 +8,14 @@ import { PerfumeCollection } from "@/components/perfume/PerfumeCollection";
 interface FeaturedCollectionProps {
   perfumes: Perfume[];
   currency: string;
+  /** Editable brand story; falls back to the built-in line when absent. */
+  intro?: string;
 }
 
 export function FeaturedCollection({
   perfumes,
   currency,
+  intro,
 }: FeaturedCollectionProps) {
   return (
     <section className="bg-ink py-28 md:py-36">
@@ -20,8 +23,11 @@ export function FeaturedCollection({
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <SectionHeading
             eyebrow="The collection"
-            title="Six fragrances, each signed"
-            intro="Small batches, no reformulation. Every bottle carries the name of the perfumer who composed it."
+            title="Each one signed"
+            intro={
+              intro ||
+              "Small batches, no reformulation. Every bottle carries the name of the perfumer who composed it."
+            }
           />
           <Reveal>
             <ButtonLink href="/collection" variant="outline" className="shrink-0">

@@ -169,11 +169,17 @@ export function SettingsForm({ settings }: SettingsFormProps) {
 
       <FormSection
         title="Homepage copy"
-        description="Carried in the content model. Wired into the Hero in a later phase."
+        description="Drives the home page directly: the hero headline and intro, the house-section lead paragraph, and the collection lead-in."
       >
-        <Field label="Hero headline" htmlFor="heroHeadline" error={fieldErrors.heroHeadline}>
-          <TextInput
+        <Field
+          label="Hero headline"
+          htmlFor="heroHeadline"
+          hint="Each line becomes a separate clipped line in the hero."
+          error={fieldErrors.heroHeadline}
+        >
+          <TextArea
             id="heroHeadline"
+            className="min-h-24"
             value={form.heroHeadline}
             onChange={(e) => set("heroHeadline", e.target.value)}
           />
@@ -185,14 +191,24 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             onChange={(e) => set("heroIntro", e.target.value)}
           />
         </Field>
-        <Field label="Homepage introduction" htmlFor="homepageIntro" error={fieldErrors.homepageIntro}>
+        <Field
+          label="Homepage introduction"
+          htmlFor="homepageIntro"
+          hint="Lead paragraph under the house-section heading."
+          error={fieldErrors.homepageIntro}
+        >
           <TextArea
             id="homepageIntro"
             value={form.homepageIntro}
             onChange={(e) => set("homepageIntro", e.target.value)}
           />
         </Field>
-        <Field label="Brand story" htmlFor="brandStory" error={fieldErrors.brandStory}>
+        <Field
+          label="Brand story"
+          htmlFor="brandStory"
+          hint="Intro line above the featured collection on the home page."
+          error={fieldErrors.brandStory}
+        >
           <TextArea
             id="brandStory"
             value={form.brandStory}

@@ -1,4 +1,5 @@
 import { contentRepository } from "@/lib/content";
+import { splitLines } from "@/lib/utils";
 import { Hero } from "@/components/home/Hero";
 import { ScrollStory } from "@/components/home/ScrollStory";
 import { FeaturedCollection } from "@/components/home/FeaturedCollection";
@@ -41,8 +42,14 @@ export default async function HomePage() {
     <>
       <Hero
         eyebrow={settings.tagline}
-        titleLines={["The scent of", "a room at dusk"]}
-        intro="Maison Lumière is a small Parisian house making auteur perfumes — each one signed, made in limited batches, and left exactly as it was composed."
+        titleLines={splitLines(
+          settings.heroHeadline,
+          "The scent of\na room at dusk",
+        )}
+        intro={
+          settings.heroIntro?.trim() ||
+          "Maison Lumière is a small Parisian house making auteur perfumes — each one signed, made in limited batches, and left exactly as it was composed."
+        }
         accent={opener?.accent ?? "#c7ac7c"}
         poster={opener?.hero.src ?? "/images/grain.svg"}
         posterAlt={opener?.hero.alt ?? settings.brandName}
@@ -51,10 +58,15 @@ export default async function HomePage() {
       <ScrollStory
         eyebrow="The house"
         heading="A small house, run deliberately slowly"
+        intro={settings.homepageIntro?.trim() || undefined}
         steps={STORY_STEPS}
       />
 
-      <FeaturedCollection perfumes={perfumes} currency={settings.currency} />
+      <FeaturedCollection
+        perfumes={perfumes}
+        currency={settings.currency}
+        intro={settings.brandStory?.trim() || undefined}
+      />
 
       <NotesPhilosophy />
 
