@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+  <defs>
+    <linearGradient id="bgiris" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0d0f"/>
+      <stop offset="100%" stop-color="#0a0a0b"/>
+    </linearGradient>
+    <linearGradient id="gliris" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#71857d"/>
+      <stop offset="55%" stop-color="#495d55"/>
+      <stop offset="100%" stop-color="#21352d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1600" fill="url(#bgiris)"/>
+  <g>
+    <rect x="548" y="196" width="104" height="86" rx="6" fill="#7b8f87"/>
+    <rect x="560" y="270" width="80" height="40" fill="#5d7169"/>
+    <path d="M470 320 h260 a70 70 0 0 1 70 70 v760 a90 90 0 0 1 -90 90 h-220 a90 90 0 0 1 -90 -90 v-760 a70 70 0 0 1 70 -70 z"
+      fill="url(#gliris)" stroke="#b7cbc3" stroke-width="2" stroke-opacity="0.5"/>
+    <rect x="470" y="300" width="260" height="26" rx="8" fill="#7b8f87"/>
+    <line x1="600" y1="360" x2="600" y2="1180" stroke="#b7cbc3" stroke-width="2" stroke-opacity="0.28"/>
+    <rect x="512" y="720" width="176" height="220" fill="#0a0a0b" opacity="0.28"/>
+    <text x="600" y="820" text-anchor="middle" font-family="Georgia, serif" font-size="34" letter-spacing="6" fill="#cbdfd7" opacity="0.9">MAISON</text>
+    <text x="600" y="864" text-anchor="middle" font-family="Georgia, serif" font-size="20" letter-spacing="10" fill="#adc1b9" opacity="0.7">LUMIÈRE</text>
+  </g>
+</svg>

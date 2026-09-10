@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2000" viewBox="0 0 1600 2000">
+  <defs>
+    <radialGradient id="gbois" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#402100"/>
+      <stop offset="46%" stop-color="#0e0000"/>
+      <stop offset="100%" stop-color="#0a0a0b"/>
+    </radialGradient>
+    <filter id="nbois"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0"/></filter>
+  </defs>
+  <rect width="1600" height="2000" fill="url(#gbois)"/>
+  <ellipse cx="800" cy="760" rx="360" ry="520" fill="#725332" opacity="0.18"/>
+  <rect width="1600" height="2000" filter="url(#nbois)"/>
+</svg>

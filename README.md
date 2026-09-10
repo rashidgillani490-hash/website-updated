@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Maison Lumière
 
-## Getting Started
+A premium 3D perfume storefront. Phase 1 lays the foundation: brand system,
+component architecture, a swappable content layer, the interactive 3D flacon,
+scroll-driven motion, and a visual Admin scaffold.
 
-First, run the development server:
+## Stack
+
+- **Next.js 15** (App Router, TypeScript, static generation)
+- **Tailwind CSS 4** (CSS-first tokens in `src/app/globals.css`)
+- **React Three Fiber / three.js** — procedural flacon, local studio lighting
+- **Framer Motion** — hero line reveals, scroll-linked story section
+
+## Scripts
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev        # local development
+npm run build      # production build
+npm run start      # serve the production build
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+  app/
+    (site)/            storefront routes — share Header + Footer
+      page.tsx         home: Hero · ScrollStory · FeaturedCollection · NotesPhilosophy · Invitation
+      collection/      full catalogue grid
+      fragrance/[slug] product detail (SSG from repository slugs)
+    admin/             Admin scaffold — own shell, noindex
+      fragrances/      list · [id] edit · new
+      settings/        site settings form
+  components/
+    layout/            Header, Navigation, MobileMenu, Footer
+    home/              Hero, ScrollStory (scroll-driven), FeaturedCollection, NotesPhilosophy, Invitation
+    perfume/           PerfumeCard, PerfumeCollection, FragranceNotes, PerfumeDetail
+    three/             PerfumeExperience (Canvas + poster fallback), PerfumeBottle, SceneEnvironment
+    admin/             AdminShell, AdminNav, AdminForm primitives, ImageUpload, FragranceForm, SettingsForm
+    ui/                Container, Button, Reveal, SectionHeading
+  lib/
+    content/           the data layer — see below
+    motion/            shared Framer Motion variants + house easing
+    utils.ts           cn(), formatPrice(), toParagraphs()
+  hooks/               useScrolled()
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Content layer (`src/lib/content`)
 
-## Learn More
+Every storefront and Admin screen reads through **`contentRepository`**
+(`repository.ts`), an async interface. Today it resolves from typed mock data
+(`perfumes.ts`, `settings.ts`); a later phase backs the same interface with a
+database or CMS and populates it from the Admin write path — no consumer
+changes, because nothing imports the mock arrays directly.
 
-To learn more about Next.js, take a look at the following resources:
+- `types.ts` — `Perfume`, `FragranceNote`, `SiteSettings`, …
+- `repository.ts` — `ContentRepository` interface + `MockContentRepository`
+- swap the final `export const contentRepository = …` to change the source
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Admin (Phase 1 scope)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Screens, navigation and fully controlled forms are in place. Persistence,
+image upload storage and authentication are intentionally **not** implemented —
+`SubmitBar` is disabled and `ImageUpload` previews locally only.
 
-## Deploy on Vercel
+## Assets
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Placeholder artwork in `public/images/` is generated SVG (atmosphere fields and
+flacon silhouettes per fragrance). Replace with photography via the Admin image
+fields in a later phase.
