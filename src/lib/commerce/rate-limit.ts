@@ -5,17 +5,21 @@ import type { OrderCustomerInput } from "./schema";
 import type { OrderSummary } from "./types";
 
 /**
- * In-process abuse protection for the anonymous COD checkout.
+ * Abuse protection for the anonymous COD checkout.
  *
- * This is a single-instance, in-memory guard: a sliding-window request limit
- * per client, an idempotency cache so a retried submission returns the first
- * result instead of creating a second order, and a short content-hash window so
- * an accidental double-submit is rejected. It needs no external service.
+ * Two layers:
+ *   - Always: an in-process sliding-window limit per client, an idempotency
+ *     cache, and a short content-hash dedupe window. No external service.
+ *   - When `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set: a
+ *     distributed fixed-window counter (per client IP + a coarse global bucket)
+ *     via the Upstash REST API — one `INCR` per request, shared across every
+ *     serverless instance. `enforceCheckoutRate()` uses it and falls back to
+ *     the in-process check if the backend is slow or unavailable, so a KV
+ *     outage cannot take checkout down.
  *
- * What it is NOT: a distributed rate limiter. Each serverless instance keeps
- * its own maps, so a spread-out or multi-instance flood is only partly slowed.
- * A real defence (Upstash / Vercel KV counter, or Turnstile / hCaptcha on the
- * form) is infrastructure that is not configured here — see the phase notes.
+ * If Upstash is not configured the limiter is single-instance only: a flood
+ * spread across instances / IPs is only partly slowed. That gap is
+ * infrastructure-dependent (provision Upstash, or add Turnstile to the form).
  */
 
 function intFromEnv(name: string, fallback: number): number {
@@ -26,6 +30,9 @@ function intFromEnv(name: string, fallback: number): number {
 
 const WINDOW_MS = intFromEnv("CHECKOUT_RATE_WINDOW_MS", 60_000);
 const MAX_IN_WINDOW = intFromEnv("CHECKOUT_RATE_MAX", 6);
+/** Coarse ceiling on total checkout attempts per window (distributed only) —
+ *  catches a flood spread across many IPs. */
+const GLOBAL_MAX = intFromEnv("CHECKOUT_RATE_GLOBAL_MAX", MAX_IN_WINDOW * 50);
 const IDEMPOTENCY_TTL_MS = 10 * 60_000;
 const DEDUPE_TTL_MS = 30_000;
 /** Hard cap so a flood of distinct keys can't grow the maps without bound. */
@@ -73,6 +80,90 @@ export function checkRateLimit(key: string, now = Date.now()): RateDecision {
 
   recent.push(now);
   attempts.set(key, recent);
+  return { ok: true, retryAfterMs: 0 };
+}
+
+/* ------------------------------------------------- distributed (Upstash REST) */
+
+function upstashConfig(): { url: string; token: string } | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  return url && token ? { url: url.replace(/\/+$/, ""), token } : null;
+}
+
+let upstashWarned = false;
+
+/**
+ * One atomic fixed-window `INCR` per bucket via Upstash's pipeline endpoint.
+ * Returns the resulting counts, or `null` if the backend is unreachable / slow
+ * (the caller then falls back to the in-process check).
+ */
+async function upstashIncr(
+  cfg: { url: string; token: string },
+  bucketKeys: string[],
+  windowStart: number,
+): Promise<number[] | null> {
+  const pipeline = bucketKeys.flatMap((k) => {
+    const key = `chk:${k}:${windowStart}`;
+    return [
+      ["INCR", key],
+      ["PEXPIRE", key, String(WINDOW_MS + 5_000), "NX"],
+    ];
+  });
+
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 600);
+  try {
+    const res = await fetch(`${cfg.url}/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${cfg.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(pipeline),
+      signal: ac.signal,
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`upstash ${res.status}`);
+    const body = (await res.json()) as Array<{ result?: unknown; error?: string }>;
+    // Every other entry is an INCR result.
+    return bucketKeys.map((_, i) => Number(body[i * 2]?.result ?? 0));
+  } catch (error) {
+    if (!upstashWarned) {
+      upstashWarned = true;
+      console.warn(
+        `[rate-limit] Upstash unavailable — falling back to the in-process limiter. (${
+          error instanceof Error ? error.message : String(error)
+        })`,
+      );
+    }
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * The check the checkout Server Action calls. Distributed when Upstash is
+ * configured (per-client + global buckets), in-process otherwise, and always
+ * in-process if the distributed backend fails.
+ */
+export async function enforceCheckoutRate(
+  key: string,
+  now = Date.now(),
+): Promise<RateDecision> {
+  const cfg = upstashConfig();
+  if (!cfg) return checkRateLimit(key, now);
+
+  const windowStart = Math.floor(now / WINDOW_MS);
+  const counts = await upstashIncr(cfg, [key, "__all__"], windowStart);
+  if (!counts) return checkRateLimit(key, now);
+
+  const [perClient, global] = counts;
+  const retryAfterMs = Math.max(1, (windowStart + 1) * WINDOW_MS - now);
+
+  if (perClient > MAX_IN_WINDOW) return { ok: false, retryAfterMs };
+  if (global > GLOBAL_MAX) return { ok: false, retryAfterMs };
   return { ok: true, retryAfterMs: 0 };
 }
 
@@ -130,11 +221,14 @@ export function __resetRateLimitState(): void {
   attempts.clear();
   idempotent.clear();
   recentIntents.clear();
+  upstashWarned = false;
 }
 
 export const RATE_LIMIT_CONFIG = {
   windowMs: WINDOW_MS,
   maxInWindow: MAX_IN_WINDOW,
+  globalMax: GLOBAL_MAX,
   idempotencyTtlMs: IDEMPOTENCY_TTL_MS,
   dedupeTtlMs: DEDUPE_TTL_MS,
+  distributed: Boolean(upstashConfig()),
 } as const;

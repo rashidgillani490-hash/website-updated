@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   __resetRateLimitState,
   RATE_LIMIT_CONFIG,
   checkRateLimit,
   clientKeyFromHeaders,
+  enforceCheckoutRate,
   getIdempotentResult,
   isDuplicateIntent,
   orderIntentHash,
@@ -73,6 +74,70 @@ describe("checkRateLimit", () => {
     for (let i = 0; i < RATE_LIMIT_CONFIG.maxInWindow; i++) checkRateLimit("a", t0);
     expect(checkRateLimit("a", t0).ok).toBe(false);
     expect(checkRateLimit("b", t0).ok).toBe(true);
+  });
+});
+
+describe("enforceCheckoutRate", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  const withUpstash = () => {
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://x.upstash.io");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "tok");
+  };
+  const fetchReturning = (counts: number[]) =>
+    vi.fn(async () => ({
+      ok: true,
+      json: async () =>
+        counts.flatMap((c) => [{ result: c }, { result: 1 }]),
+    }));
+
+  it("uses the in-process limiter when Upstash is not configured", async () => {
+    const t0 = 5_000_000;
+    for (let i = 0; i < RATE_LIMIT_CONFIG.maxInWindow; i++) {
+      expect((await enforceCheckoutRate("k", t0)).ok).toBe(true);
+    }
+    expect((await enforceCheckoutRate("k", t0)).ok).toBe(false);
+  });
+
+  it("allows when the distributed per-client + global counts are under the limits", async () => {
+    withUpstash();
+    vi.stubGlobal("fetch", fetchReturning([3, 10]));
+    expect(await enforceCheckoutRate("checkout:1.2.3.4")).toEqual({
+      ok: true,
+      retryAfterMs: 0,
+    });
+  });
+
+  it("blocks when the distributed per-client count exceeds the limit", async () => {
+    withUpstash();
+    vi.stubGlobal("fetch", fetchReturning([RATE_LIMIT_CONFIG.maxInWindow + 1, 5]));
+    const res = await enforceCheckoutRate("checkout:1.2.3.4");
+    expect(res.ok).toBe(false);
+    expect(res.retryAfterMs).toBeGreaterThan(0);
+  });
+
+  it("blocks on the coarse global bucket even when a single client is fine", async () => {
+    withUpstash();
+    vi.stubGlobal("fetch", fetchReturning([1, RATE_LIMIT_CONFIG.globalMax + 1]));
+    expect((await enforceCheckoutRate("checkout:9.9.9.9")).ok).toBe(false);
+  });
+
+  it("falls back to the in-process limiter if the Upstash call fails", async () => {
+    withUpstash();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network down");
+      }),
+    );
+    const t0 = 6_000_000;
+    for (let i = 0; i < RATE_LIMIT_CONFIG.maxInWindow; i++) {
+      expect((await enforceCheckoutRate("k", t0)).ok).toBe(true);
+    }
+    expect((await enforceCheckoutRate("k", t0)).ok).toBe(false);
   });
 });
 

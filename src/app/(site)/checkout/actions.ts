@@ -6,8 +6,8 @@ import { priceCart } from "@/lib/commerce/cart-store";
 import { buildOrder, persistOrder, toOrderSummary } from "@/lib/commerce/orders";
 import { fieldErrors, placeOrderSchema } from "@/lib/commerce/schema";
 import {
-  checkRateLimit,
   clientKeyFromHeaders,
+  enforceCheckoutRate,
   getIdempotentResult,
   isDuplicateIntent,
   orderIntentHash,
@@ -31,9 +31,9 @@ export type PlaceOrderResult =
 /**
  * Place a cash-on-delivery order. No login required.
  *
- * Abuse handling (all in-process — see `rate-limit.ts` for what a real
- * distributed limiter would add):
- *   1. sliding-window request limit per client (proxy IP)
+ * Abuse handling:
+ *   1. request-rate limit per client (proxy IP) — distributed via Upstash when
+ *      configured, in-process otherwise (see `enforceCheckoutRate`)
  *   2. idempotency — a retry with the same key returns the first result
  *   3. content-hash dedupe — an identical order within 30s is rejected
  *   4. a sanity ceiling on the order total
@@ -47,7 +47,7 @@ export type PlaceOrderResult =
 export async function placeOrder(payload: unknown): Promise<PlaceOrderResult> {
   // 1. Throttle before any catalogue / DB work.
   const key = clientKeyFromHeaders(await headers());
-  const rate = checkRateLimit(key);
+  const rate = await enforceCheckoutRate(key);
   if (!rate.ok) {
     const retryAfterSeconds = Math.max(1, Math.ceil(rate.retryAfterMs / 1000));
     return {
