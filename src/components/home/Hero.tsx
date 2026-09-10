@@ -1,9 +1,5 @@
-"use client";
-
-import { motion } from "motion/react";
 import { PerfumeExperience } from "@/components/three/PerfumeExperience";
 import { ButtonLink } from "@/components/ui/Button";
-import { easeLuxe, revealLine, stagger } from "@/lib/motion/variants";
 
 interface HeroProps {
   eyebrow: string;
@@ -16,7 +12,10 @@ interface HeroProps {
 
 /**
  * Opening frame: a clipped-line serif headline against the live 3D flacon.
- * The headline animates on mount; the scene runs continuously behind it.
+ * The headline reveals on mount via CSS (`hero-reveal*` classes in
+ * globals.css), staggered with inline `animation-delay`. Kept off the JS
+ * animation library here so hydration timing can't leave it stuck and so it
+ * can't interfere with the on-scroll reveals lower on the page.
  */
 export function Hero({
   eyebrow,
@@ -47,57 +46,38 @@ export function Hero({
       />
 
       <div className="relative mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-[110rem] flex-col justify-center px-[var(--spacing-gutter)] py-24">
-        <motion.div
-          className="max-w-2xl"
-          variants={stagger(0.12, 0.15)}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.span
-            className="eyebrow flex items-center gap-3"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: { opacity: 1, transition: { duration: 0.8, ease: easeLuxe } },
-            }}
+        <div className="max-w-2xl">
+          <span
+            className="hero-reveal--fade eyebrow flex items-center gap-3"
+            style={{ animationDelay: "0.15s" }}
           >
             <span aria-hidden className="h-px w-10 bg-champagne/60" />
             {eyebrow}
-          </motion.span>
+          </span>
 
           <h1 className="mt-7 font-serif text-[clamp(2.75rem,7vw,5.25rem)] font-light leading-[0.98] tracking-[-0.015em] text-ivory">
             {titleLines.map((line, i) => (
               <span key={i} className="block overflow-hidden">
-                <motion.span className="block" variants={revealLine}>
+                <span
+                  className="hero-reveal--line"
+                  style={{ animationDelay: `${0.27 + i * 0.12}s` }}
+                >
                   {line}
-                </motion.span>
+                </span>
               </span>
             ))}
           </h1>
 
-          <motion.p
-            className="mt-8 max-w-md text-[0.98rem] leading-relaxed text-ivory-dim"
-            variants={{
-              hidden: { opacity: 0, y: 16 },
-              visible: {
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.9, ease: easeLuxe },
-              },
-            }}
+          <p
+            className="hero-reveal mt-8 max-w-md text-[0.98rem] leading-relaxed text-ivory-dim"
+            style={{ animationDelay: "0.55s" }}
           >
             {intro}
-          </motion.p>
+          </p>
 
-          <motion.div
-            className="mt-11 flex flex-wrap items-center gap-4"
-            variants={{
-              hidden: { opacity: 0, y: 16 },
-              visible: {
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.9, ease: easeLuxe },
-              },
-            }}
+          <div
+            className="hero-reveal mt-11 flex flex-wrap items-center gap-4"
+            style={{ animationDelay: "0.66s" }}
           >
             <ButtonLink href="/collection" variant="solid">
               Discover the collection
@@ -105,26 +85,24 @@ export function Hero({
             <ButtonLink href="/#house" variant="ghost">
               The house
             </ButtonLink>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
 
-      {/* Scroll cue */}
-      <motion.div
-        className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-3 lg:flex"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.4, duration: 1 }}
+      {/* Scroll cue — CSS fade in, then a CSS-driven "breath" on the line
+          (composited off the main thread, silenced by prefers-reduced-motion). */}
+      <div
+        className="hero-reveal--fade absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-3 lg:flex"
+        style={{ animationDelay: "1.4s" }}
       >
         <span className="text-[0.6rem] uppercase tracking-[var(--tracking-luxe)] text-smoke">
           Scroll
         </span>
-        <motion.span
-          className="h-10 w-px bg-gradient-to-b from-champagne/70 to-transparent"
-          animate={{ scaleY: [0.3, 1, 0.3], originY: 0 }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        <span
+          aria-hidden
+          className="scroll-cue-line h-10 w-px bg-gradient-to-b from-champagne/70 to-transparent"
         />
-      </motion.div>
+      </div>
     </section>
   );
 }

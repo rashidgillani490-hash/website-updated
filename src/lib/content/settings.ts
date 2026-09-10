@@ -11,23 +11,21 @@ export const SITE_SETTINGS: SiteSettings = {
   description:
     "Maison Lumière is a small Parisian perfume house. Each composition is signed by its perfumer and made in limited batches, without reformulation.",
   announcement: "Complimentary engraving and shipping on orders over $200",
+  // Only routes/anchors that resolve today. Journal, Shipping and Ingredients
+  // return as real pages in a later phase, at which point their links come back.
   primaryNav: [
     { label: "Collection", href: "/collection" },
     { label: "The House", href: "/#house" },
     { label: "Notes", href: "/#notes" },
-    { label: "Journal", href: "/#journal" },
   ],
   footerNav: [
     { label: "Collection", href: "/collection" },
-    { label: "Shipping & Returns", href: "/#shipping" },
-    { label: "Ingredients", href: "/#ingredients" },
     { label: "Contact", href: "/#contact" },
     { label: "Admin", href: "/admin" },
   ],
   social: [
     { label: "Instagram", href: "https://instagram.com" },
     { label: "Pinterest", href: "https://pinterest.com" },
-    { label: "Journal", href: "/#journal" },
   ],
   contactEmail: "atelier@maisonlumiere.example",
   addressLines: ["9 Rue de Sévigné", "75004 Paris", "France"],

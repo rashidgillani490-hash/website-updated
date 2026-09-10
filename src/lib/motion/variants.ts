@@ -1,6 +1,12 @@
 import type { Variants, Transition } from "motion/react";
 
-/** House easing — a long, settled deceleration. */
+/**
+ * House easing — a long, settled deceleration (cubic-bezier 0.16, 1, 0.3, 1,
+ * an ease-out-expo). Single source of truth for JS one-shot / entrance motion;
+ * the CSS twin is `--ease-out-expo` in `app/globals.css` (identical curve).
+ * Use this rather than introducing new curves. Symmetric ambient loops use the
+ * plain `ease-in-out` keyword instead (see `.scroll-cue-line`).
+ */
 export const easeLuxe: Transition["ease"] = [0.16, 1, 0.3, 1];
 
 export const fadeUp: Variants = {

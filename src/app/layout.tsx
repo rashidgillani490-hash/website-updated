@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Jost } from "next/font/google";
 import { contentRepository } from "@/lib/content";
+import { MotionProvider } from "@/components/providers/MotionProvider";
 import "./globals.css";
 
 const serif = Cormorant_Garamond({
@@ -46,7 +47,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable}`}>
-      <body className="min-h-svh antialiased">{children}</body>
+      <body className="min-h-svh antialiased">
+        <MotionProvider>{children}</MotionProvider>
+      </body>
     </html>
   );
 }
