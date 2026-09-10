@@ -15,6 +15,21 @@ export function formatPrice(amount: number, currency = "USD") {
   }).format(amount);
 }
 
+/** Format an ISO timestamp as e.g. "10 Sep 2026, 14:32". Empty string for a
+ *  missing / unparseable value. */
+export function formatDateTime(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
+}
+
 /** Split long-form copy stored with blank-line paragraph breaks. */
 export function toParagraphs(text: string) {
   return text

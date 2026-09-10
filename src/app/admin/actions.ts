@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { AdminRepository } from "@/lib/admin/repository";
+import { OrderAdmin } from "@/lib/admin/orders";
 import {
   deletePerfumeImage,
   uploadPerfumeImage,
 } from "@/lib/admin/storage";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/commerce/types";
 import {
   fieldErrors,
   imageRoleEnum,
@@ -248,5 +250,36 @@ export async function reorderImages(
   if (!result.ok) return { ok: false, error: result.error };
   revalidateStorefront();
   revalidatePath(`/admin/fragrances/${perfumeId}`);
+  return { ok: true };
+}
+
+/* ==================================================================== orders */
+
+const orderStatusSchema = z.object({
+  id: z.string().uuid("Invalid order."),
+  status: z.enum(ORDER_STATUSES as [OrderStatus, ...OrderStatus[]]),
+});
+
+/**
+ * Move an order along its workflow. The RLS `admins update orders` policy is
+ * the real gate; `requireAdmin()` here just fails fast. Orders never touch the
+ * storefront cache, only the two admin views.
+ */
+export async function updateOrderStatus(
+  id: string,
+  status: string,
+): Promise<ActionResult> {
+  const { supabase } = await requireAdmin();
+  const parsed = orderStatusSchema.safeParse({ id, status });
+  if (!parsed.success) return { ok: false, error: "Invalid status change." };
+
+  const result = await new OrderAdmin(supabase).updateStatus(
+    parsed.data.id,
+    parsed.data.status,
+  );
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${parsed.data.id}`);
   return { ok: true };
 }

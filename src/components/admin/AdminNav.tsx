@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { label: "Overview", href: "/admin", exact: true },
+  { label: "Orders", href: "/admin/orders" },
   { label: "Website settings", href: "/admin/settings" },
   { label: "Perfumes", href: "/admin/fragrances", notMatch: "/admin/fragrances/new" },
   { label: "Add perfume", href: "/admin/fragrances/new" },
@@ -36,16 +37,6 @@ export function AdminNav() {
           {link.label}
         </Link>
       ))}
-      <span
-        aria-disabled
-        title="Orders arrive with the checkout phase"
-        className="mt-1 cursor-default border-l border-line px-4 py-2.5 text-sm text-smoke/60"
-      >
-        Orders
-        <span className="ml-2 text-[0.55rem] uppercase tracking-[var(--tracking-wide)]">
-          soon
-        </span>
-      </span>
     </nav>
   );
 }

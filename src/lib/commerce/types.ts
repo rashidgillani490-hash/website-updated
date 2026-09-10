@@ -7,13 +7,21 @@
  * server before they are written, so a tampered client price never sticks.
  */
 
-/** Order lifecycle. New orders start `pending`. */
-export type OrderStatus = "pending" | "confirmed" | "fulfilled" | "cancelled";
+/** Order lifecycle, in fulfilment order. New orders start `pending`. */
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export const ORDER_STATUSES: readonly OrderStatus[] = [
   "pending",
   "confirmed",
-  "fulfilled",
+  "processing",
+  "shipped",
+  "delivered",
   "cancelled",
 ];
 

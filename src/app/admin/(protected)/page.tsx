@@ -1,22 +1,21 @@
 import Link from "next/link";
-import { getAdminRepo } from "@/lib/admin/context";
+import { getAdminRepo, getOrderAdmin } from "@/lib/admin/context";
 
 export default async function AdminOverviewPage() {
-  const repo = await getAdminRepo();
-  const [settings, perfumes] = await Promise.all([
+  const [repo, orders] = await Promise.all([getAdminRepo(), getOrderAdmin()]);
+  const [settings, perfumes, orderCounts] = await Promise.all([
     repo.getSettings(),
     repo.getPerfumes(),
+    orders.counts(),
   ]);
 
-  const published = perfumes.filter((p) => p.availability !== "archived").length;
-  const drafts = perfumes.length - published;
   const featured = perfumes.filter((p) => p.featured).length;
 
   const stats = [
     { label: "Fragrances", value: perfumes.length },
     { label: "Featured", value: featured },
-    { label: "Drafts", value: drafts },
-    { label: "Currency", value: settings.currency },
+    { label: "Orders", value: orderCounts.total },
+    { label: "Pending", value: orderCounts.pending },
   ];
 
   return (
@@ -50,6 +49,15 @@ export default async function AdminOverviewPage() {
           <h2 className="font-serif text-xl font-light text-ivory">Quick links</h2>
         </div>
         <ul className="divide-y divide-line border-y border-line text-sm">
+          <li className="py-4">
+            <Link
+              href="/admin/orders"
+              className="text-ivory-dim transition-colors duration-300 hover:text-champagne"
+            >
+              Review orders
+              {orderCounts.pending > 0 ? ` (${orderCounts.pending} pending)` : ""} →
+            </Link>
+          </li>
           <li className="py-4">
             <Link
               href="/admin/settings"
