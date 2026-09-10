@@ -1,6 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactElement,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart/CartProvider";
 import { Button } from "@/components/ui/Button";
@@ -251,11 +260,16 @@ export function CheckoutForm() {
 
 function input(error?: string) {
   return (
-    "h-12 w-full border bg-transparent px-3 text-sm text-ivory outline-none transition-colors duration-300 placeholder:text-smoke focus:border-champagne " +
+    "h-12 w-full border bg-transparent px-3 text-sm text-ivory transition-colors duration-300 placeholder:text-smoke focus:border-champagne " +
     (error ? "border-champagne/70" : "border-line")
   );
 }
 
+/**
+ * Wraps a bare `<input>` / `<textarea>` in an associated `<label>` and, when
+ * there's an error, links it via `aria-describedby` + `aria-invalid` so a
+ * screen reader announces "invalid — <message>" on focus.
+ */
 function Field({
   label,
   hint,
@@ -265,17 +279,27 @@ function Field({
   label: string;
   hint?: string;
   error?: string;
-  children: React.ReactNode;
+  children: ReactElement<Record<string, unknown>>;
 }) {
+  const errorId = useId();
+  const control = isValidElement(children)
+    ? cloneElement(children, {
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": error ? errorId : undefined,
+      })
+    : children;
+
   return (
     <label className="flex flex-col gap-2">
       <span className="flex items-baseline justify-between text-[0.7rem] uppercase tracking-[var(--tracking-wide)] text-smoke">
         <span>{label}</span>
         {hint ? <span className="normal-case tracking-normal">{hint}</span> : null}
       </span>
-      {children}
+      {control}
       {error ? (
-        <span className="text-[0.75rem] text-champagne-bright">{error}</span>
+        <span id={errorId} role="alert" className="text-[0.75rem] text-champagne-bright">
+          {error}
+        </span>
       ) : null}
     </label>
   );

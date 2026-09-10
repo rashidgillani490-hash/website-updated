@@ -46,6 +46,7 @@ export function Navigation({
             key={link.href}
             href={link.href}
             onClick={onNavigate}
+            aria-current={active && !link.href.includes("#") ? "page" : undefined}
             className={cn(
               "group relative font-sans uppercase tracking-[var(--tracking-wide)] transition-colors duration-500",
               orientation === "horizontal"

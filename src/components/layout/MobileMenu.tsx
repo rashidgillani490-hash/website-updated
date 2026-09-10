@@ -1,9 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect } from "react";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/content";
+import { useDialog } from "@/hooks/useDialog";
 import { Navigation } from "./Navigation";
 import { Logo } from "./Logo";
 import { easeLuxe } from "@/lib/motion/variants";
@@ -15,23 +15,18 @@ interface MobileMenuProps {
 }
 
 export function MobileMenu({ open, onClose, settings }: MobileMenuProps) {
-  useEffect(() => {
-    if (!open) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = original;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
+  const panelRef = useDialog<HTMLDivElement>(open, onClose);
 
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex flex-col bg-ink lg:hidden"
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
+          tabIndex={-1}
+          className="fixed inset-0 z-50 flex flex-col bg-ink outline-none lg:hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

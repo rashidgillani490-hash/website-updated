@@ -51,7 +51,9 @@ export function Field({
       </label>
       {children}
       {error ? (
-        <span className="text-xs text-red-400">{error}</span>
+        <span role="alert" className="text-xs text-red-400">
+          {error}
+        </span>
       ) : hint ? (
         <span className="text-xs text-smoke">{hint}</span>
       ) : null}
@@ -87,9 +89,21 @@ export function SelectInput({
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(controlClass, "appearance-none", className)} {...props}>
-      {children}
-    </select>
+    <div className="relative">
+      <select
+        className={cn(controlClass, "appearance-none pr-10", className)}
+        {...props}
+      >
+        {children}
+      </select>
+      {/* `appearance-none` drops the native arrow — put a visible one back. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-smoke"
+      >
+        ▾
+      </span>
+    </div>
   );
 }
 

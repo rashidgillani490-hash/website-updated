@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { easeLuxe } from "@/lib/motion/variants";
+import { useDialog } from "@/hooks/useDialog";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { useCart } from "./CartProvider";
 import { CartLineRow } from "./CartLineRow";
@@ -12,20 +12,7 @@ import { CartSummary } from "./CartSummary";
 /** Right-hand slide-over bag. Mounted once by <CartProvider>. */
 export function CartDrawer() {
   const { items, subtotal, count, currency, isOpen, closeCart } = useCart();
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeCart();
-    window.addEventListener("keydown", onKey);
-    closeRef.current?.focus();
-    return () => {
-      document.body.style.overflow = original;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [isOpen, closeCart]);
+  const panelRef = useDialog<HTMLDivElement>(isOpen, closeCart);
 
   return (
     <AnimatePresence>
@@ -45,11 +32,13 @@ export function CartDrawer() {
             transition={{ duration: 0.3, ease: easeLuxe }}
           />
 
-          <motion.aside
+          <motion.div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Shopping bag"
-            className="absolute right-0 top-0 flex h-full w-full flex-col bg-ink-800 sm:max-w-md"
+            aria-labelledby="cart-drawer-title"
+            tabIndex={-1}
+            className="absolute right-0 top-0 flex h-full w-full flex-col bg-ink-800 outline-none sm:max-w-md"
             variants={{
               hidden: { x: "100%" },
               shown: { x: 0 },
@@ -57,11 +46,13 @@ export function CartDrawer() {
             transition={{ duration: 0.45, ease: easeLuxe }}
           >
             <header className="flex items-center justify-between border-b border-line px-6 py-5">
-              <h2 className="font-serif text-xl font-light text-ivory">
+              <h2
+                id="cart-drawer-title"
+                className="font-serif text-xl font-light text-ivory"
+              >
                 Your bag{count > 0 ? ` (${count})` : ""}
               </h2>
               <button
-                ref={closeRef}
                 type="button"
                 onClick={closeCart}
                 className="text-[0.65rem] uppercase tracking-[var(--tracking-wide)] text-ivory-dim transition-colors duration-300 hover:text-ivory"
@@ -121,7 +112,7 @@ export function CartDrawer() {
                 </div>
               </>
             )}
-          </motion.aside>
+          </motion.div>
         </motion.div>
       ) : null}
     </AnimatePresence>
