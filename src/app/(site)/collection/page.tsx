@@ -7,8 +7,11 @@ import { PerfumeCollection } from "@/components/perfume/PerfumeCollection";
 export const metadata: Metadata = {
   title: "Collection",
   description:
-    "The full Maison Lumière collection — six auteur fragrances, each signed by its perfumer and made in limited batches.",
+    "The full Maison Lumière collection — auteur fragrances, each signed by its perfumer and made in limited batches.",
 };
+
+/** Serve statically; refresh the catalogue from the content source hourly. */
+export const revalidate = 3600;
 
 export default async function CollectionPage() {
   const { settings, perfumes } = await contentRepository.getContent();

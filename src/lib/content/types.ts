@@ -1,9 +1,11 @@
 /**
  * Content model for Maison Lumière.
  *
- * Every shape here is what the Admin Panel will eventually create and edit.
- * The storefront only ever reads through the ContentRepository, so swapping
- * the mock source for a database or CMS in a later phase touches one file.
+ * These are the shapes the storefront renders and the Admin Panel will edit.
+ * The storefront only ever reads them through a `ContentRepository`, so the
+ * data source (in-memory mock, Supabase, a CMS) is a one-line swap and no
+ * component changes. Fields added for the database model are optional so the
+ * existing component APIs keep compiling unchanged.
  */
 
 export type FragranceFamily =
@@ -15,7 +17,24 @@ export type FragranceFamily =
   | "Leather"
   | "Aromatic";
 
+export const FRAGRANCE_FAMILIES: readonly FragranceFamily[] = [
+  "Floral",
+  "Woody",
+  "Amber",
+  "Chypre",
+  "Citrus",
+  "Leather",
+  "Aromatic",
+];
+
 export type NoteTier = "top" | "heart" | "base";
+
+/** Purchase state. Stored in the DB; not yet surfaced in the storefront UI. */
+export type PerfumeAvailability =
+  | "available"
+  | "coming-soon"
+  | "sold-out"
+  | "archived";
 
 export interface FragranceNote {
   name: string;
@@ -59,6 +78,10 @@ export interface Perfume {
   featured: boolean;
   /** Sort weight for the collection grid; lower shows first. */
   order: number;
+  /** DB-backed sources only. Defaults to "available" when absent. */
+  availability?: PerfumeAvailability;
+  /** ISO timestamp of the last edit. DB-backed sources only. */
+  updatedAt?: string;
 }
 
 export interface NavLink {
@@ -80,9 +103,35 @@ export interface SiteSettings {
   addressLines: string[];
   /** Base ISO currency code, e.g. "USD". */
   currency: string;
+  /** Brand marks — Storage paths/URLs. Not yet surfaced in the UI. */
+  logoUrl?: string;
+  faviconUrl?: string;
+  /** Editable homepage copy. Mirrors the DB model; the Hero still takes
+   *  literal props today, so these are not read yet. */
+  heroHeadline?: string;
+  heroIntro?: string;
+  homepageIntro?: string;
+  brandStory?: string;
+  /** ISO timestamp of the last edit. DB-backed sources only. */
+  updatedAt?: string;
 }
 
 export interface StorefrontContent {
   settings: SiteSettings;
   perfumes: Perfume[];
+}
+
+/**
+ * The single seam between the storefront and its content source. Every method
+ * is async so callers are already written for a real backend. Implementations:
+ * `MockContentRepository` (sample data — dev, tests, preview, fallback) and
+ * `SupabaseContentRepository` (production).
+ */
+export interface ContentRepository {
+  getSettings(): Promise<SiteSettings>;
+  getPerfumes(): Promise<Perfume[]>;
+  getFeaturedPerfumes(): Promise<Perfume[]>;
+  getPerfumeBySlug(slug: string): Promise<Perfume | null>;
+  getAllPerfumeSlugs(): Promise<string[]>;
+  getContent(): Promise<StorefrontContent>;
 }

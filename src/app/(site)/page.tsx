@@ -5,6 +5,9 @@ import { FeaturedCollection } from "@/components/home/FeaturedCollection";
 import { NotesPhilosophy } from "@/components/home/NotesPhilosophy";
 import { Invitation } from "@/components/home/Invitation";
 
+/** Serve statically; refresh content from the content source hourly. */
+export const revalidate = 3600;
+
 const STORY_STEPS = [
   {
     index: "01",
@@ -31,6 +34,7 @@ const STORY_STEPS = [
 export default async function HomePage() {
   const { settings, perfumes } = await contentRepository.getContent();
   const featured = perfumes.filter((p) => p.featured);
+  // May be undefined if the content source returns nothing (error / empty DB).
   const opener = featured[0] ?? perfumes[0];
 
   return (
@@ -39,9 +43,9 @@ export default async function HomePage() {
         eyebrow={settings.tagline}
         titleLines={["The scent of", "a room at dusk"]}
         intro="Maison Lumière is a small Parisian house making auteur perfumes — each one signed, made in limited batches, and left exactly as it was composed."
-        accent={opener.accent}
-        poster={opener.hero.src}
-        posterAlt={opener.hero.alt}
+        accent={opener?.accent ?? "#c7ac7c"}
+        poster={opener?.hero.src ?? "/images/grain.svg"}
+        posterAlt={opener?.hero.alt ?? settings.brandName}
       />
 
       <ScrollStory

@@ -1,61 +1,24 @@
-import type { Perfume, SiteSettings, StorefrontContent } from "./types";
-import { PERFUMES } from "./perfumes";
-import { SITE_SETTINGS } from "./settings";
+import type { ContentRepository } from "./types";
+import { MockContentRepository } from "./mock-repository";
+import { SupabaseContentRepository } from "./supabase-repository";
+import { getPublicSupabaseClient } from "@/lib/supabase/client";
 
 /**
- * The one seam between the storefront and its content source.
+ * The storefront's single content entry point.
  *
- * Today every method resolves from in-memory mock data. In a later phase the
- * same interface is backed by a database or headless CMS and populated from the
- * Admin Panel — no storefront component needs to change, because none of them
- * import the mock arrays directly.
+ *   UI → contentRepository (ContentRepository) → Mock | Supabase → data source
  *
- * Methods are async on purpose so callers are already written for a real
- * data source.
+ * Supabase is used when the public env vars are set; otherwise the sample data
+ * in `MockContentRepository` is served so the site — and the test suite — run
+ * with no backend. Swapping sources touches only this file; no component
+ * imports a concrete implementation.
  */
-export interface ContentRepository {
-  getSettings(): Promise<SiteSettings>;
-  getPerfumes(): Promise<Perfume[]>;
-  getFeaturedPerfumes(): Promise<Perfume[]>;
-  getPerfumeBySlug(slug: string): Promise<Perfume | null>;
-  getAllPerfumeSlugs(): Promise<string[]>;
-  getContent(): Promise<StorefrontContent>;
+function createContentRepository(): ContentRepository {
+  const supabase = getPublicSupabaseClient();
+  if (!supabase) {
+    return new MockContentRepository();
+  }
+  return new SupabaseContentRepository(supabase, new MockContentRepository());
 }
 
-const byOrder = (a: Perfume, b: Perfume) => a.order - b.order;
-
-class MockContentRepository implements ContentRepository {
-  async getSettings(): Promise<SiteSettings> {
-    return SITE_SETTINGS;
-  }
-
-  async getPerfumes(): Promise<Perfume[]> {
-    return [...PERFUMES].sort(byOrder);
-  }
-
-  async getFeaturedPerfumes(): Promise<Perfume[]> {
-    return [...PERFUMES].filter((p) => p.featured).sort(byOrder);
-  }
-
-  async getPerfumeBySlug(slug: string): Promise<Perfume | null> {
-    return PERFUMES.find((p) => p.slug === slug) ?? null;
-  }
-
-  async getAllPerfumeSlugs(): Promise<string[]> {
-    return PERFUMES.map((p) => p.slug);
-  }
-
-  async getContent(): Promise<StorefrontContent> {
-    const [settings, perfumes] = await Promise.all([
-      this.getSettings(),
-      this.getPerfumes(),
-    ]);
-    return { settings, perfumes };
-  }
-}
-
-/**
- * Swap this single assignment in a later phase to change the whole site's
- * data source.
- */
-export const contentRepository: ContentRepository = new MockContentRepository();
+export const contentRepository: ContentRepository = createContentRepository();

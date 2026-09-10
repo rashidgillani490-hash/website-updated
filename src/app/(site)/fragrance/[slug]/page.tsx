@@ -9,6 +9,10 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+/** Serve statically; refresh from the content source hourly. A slug added
+ *  after build renders on demand (dynamicParams defaults to true). */
+export const revalidate = 3600;
+
 export async function generateStaticParams() {
   const slugs = await contentRepository.getAllPerfumeSlugs();
   return slugs.map((slug) => ({ slug }));
