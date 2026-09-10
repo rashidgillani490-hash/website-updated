@@ -84,6 +84,7 @@ export interface PerfumeRow {
   featured: boolean | null;
   availability: string | null;
   display_order: number | null;
+  is_published: boolean | null;
   updated_at: string | null;
   perfume_sizes: SizeRow[] | null;
   fragrance_notes: NoteRow[] | null;
@@ -248,6 +249,7 @@ export function toPerfume(row: PerfumeRow): Perfume | null {
     availability: (AVAILABILITY as readonly string[]).includes(availability)
       ? (availability as PerfumeAvailability)
       : "available",
+    isPublished: row.is_published !== false,
     updatedAt: row.updated_at ?? undefined,
   };
 }

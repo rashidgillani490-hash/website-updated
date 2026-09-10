@@ -80,6 +80,10 @@ export interface Perfume {
   order: number;
   /** DB-backed sources only. Defaults to "available" when absent. */
   availability?: PerfumeAvailability;
+  /** Whether the storefront may show it. The public repository only ever
+   *  returns published records (RLS), so this is `true` there; the admin
+   *  repository sets it from the row so drafts can be managed. */
+  isPublished?: boolean;
   /** ISO timestamp of the last edit. DB-backed sources only. */
   updatedAt?: string;
 }

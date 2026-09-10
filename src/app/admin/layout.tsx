@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { contentRepository } from "@/lib/content";
-import { AdminShell } from "@/components/admin/AdminShell";
 
 export const metadata: Metadata = {
   title: "Admin",
   robots: { index: false, follow: false },
 };
 
-export default async function AdminLayout({
+/**
+ * Thin wrapper for the whole `/admin` tree. The auth gate + chrome live in
+ * `(protected)/layout.tsx` so that `/admin/login` can sit outside them.
+ */
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const settings = await contentRepository.getSettings();
-  return <AdminShell brandName={settings.brandName}>{children}</AdminShell>;
+  return children;
 }

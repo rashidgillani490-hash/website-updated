@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { AdminNav } from "./AdminNav";
+import { SignOutButton } from "./SignOutButton";
 
 interface AdminShellProps {
   brandName: string;
+  userEmail: string;
   children: React.ReactNode;
 }
 
-export function AdminShell({ brandName, children }: AdminShellProps) {
+export function AdminShell({ brandName, userEmail, children }: AdminShellProps) {
   return (
     <div className="min-h-svh bg-ink">
       <header className="border-b border-line">
-        <div className="mx-auto flex max-w-[82rem] items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-[82rem] flex-wrap items-center justify-between gap-3 px-6 py-5">
           <div className="flex items-baseline gap-3">
             <span className="font-serif text-lg font-light tracking-[0.14em] text-ivory">
               {brandName}
@@ -19,22 +21,26 @@ export function AdminShell({ brandName, children }: AdminShellProps) {
               Admin
             </span>
           </div>
-          <Link
-            href="/"
-            className="text-[0.65rem] uppercase tracking-[var(--tracking-wide)] text-ivory-dim transition-colors duration-300 hover:text-ivory"
-          >
-            View site
-          </Link>
+          <div className="flex items-center gap-5">
+            {userEmail ? (
+              <span className="hidden text-xs text-smoke sm:inline">
+                {userEmail}
+              </span>
+            ) : null}
+            <Link
+              href="/"
+              className="text-[0.65rem] uppercase tracking-[var(--tracking-wide)] text-ivory-dim transition-colors duration-300 hover:text-ivory"
+            >
+              View site
+            </Link>
+            <SignOutButton />
+          </div>
         </div>
       </header>
 
       <div className="mx-auto grid max-w-[82rem] gap-12 px-6 py-12 lg:grid-cols-[200px_1fr]">
         <aside className="lg:sticky lg:top-12 lg:self-start">
           <AdminNav />
-          <p className="mt-6 border-t border-line pt-4 text-xs leading-relaxed text-smoke">
-            Phase 1 preview. Screens and forms are in place; the write path and
-            authentication arrive in a later phase.
-          </p>
         </aside>
         <div className="min-w-0">{children}</div>
       </div>

@@ -9,11 +9,9 @@ export default function NewFragrancePage() {
           href="/admin/fragrances"
           className="text-[0.6rem] uppercase tracking-[var(--tracking-wide)] text-smoke transition-colors duration-300 hover:text-ivory"
         >
-          ← Fragrances
+          ← Perfumes
         </Link>
-        <h1 className="font-serif text-3xl font-light text-ivory">
-          New fragrance
-        </h1>
+        <h1 className="font-serif text-3xl font-light text-ivory">New perfume</h1>
       </header>
       <FragranceForm />
     </div>
