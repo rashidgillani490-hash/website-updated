@@ -11,35 +11,47 @@ interface PerfumeBottleProps {
   accent: string;
   /** Pointer position, normalised to -1..1, for parallax. */
   pointer: { x: number; y: number };
+  /**
+   * When true: no continuous rotation, no pointer parallax. The flacon holds
+   * a fixed three-quarter pose. `<Float>` is disabled by the parent.
+   */
+  reducedMotion?: boolean;
 }
 
 /**
  * A procedural flacon — no external model. Rounded glass body, frosted collar,
  * metal cap. Kept deliberately architectural so it reads as a brand object
  * rather than a product render.
+ *
+ * The `group` ref is the single handle for the future cinematic sequence
+ * (revolve / cap-lift / spray); only the body glass is physically
+ * transmissive — see the note on the inner volume below.
  */
-export function PerfumeBottle({ accent, pointer }: PerfumeBottleProps) {
+export function PerfumeBottle({
+  accent,
+  pointer,
+  reducedMotion = false,
+}: PerfumeBottleProps) {
   const group = useRef<Group>(null);
 
   useFrame((_, delta) => {
-    if (!group.current) return;
+    const g = group.current;
+    if (!g || reducedMotion) return;
     // Continuous slow turn, plus an eased lean toward the cursor.
-    group.current.rotation.y += delta * 0.28;
-    group.current.rotation.x = MathUtils.lerp(
-      group.current.rotation.x,
-      pointer.y * 0.18,
-      0.05,
-    );
-    group.current.position.x = MathUtils.lerp(
-      group.current.position.x,
-      pointer.x * 0.15,
-      0.05,
-    );
+    g.rotation.y += delta * 0.28;
+    g.rotation.x = MathUtils.lerp(g.rotation.x, pointer.y * 0.18, 0.05);
+    g.position.x = MathUtils.lerp(g.position.x, pointer.x * 0.15, 0.05);
   });
 
   return (
-    <group ref={group} position={[0, -0.1, 0]}>
-      {/* Body */}
+    <group
+      ref={group}
+      position={[0, -0.1, 0]}
+      rotation={reducedMotion ? [0.05, -0.5, 0] : [0, 0, 0]}
+    >
+      {/* Body — the only transmissive surface. `transmission` forces three.js
+          to render an extra opaque pass each frame and runs the heavy
+          refraction BSDF per fragment, so it is kept to this one mesh. */}
       <RoundedBox args={[1.5, 2.3, 0.9]} radius={0.12} smoothness={8} castShadow>
         <meshPhysicalMaterial
           color={accent}
@@ -55,26 +67,31 @@ export function PerfumeBottle({ accent, pointer }: PerfumeBottleProps) {
         />
       </RoundedBox>
 
-      {/* Inner liquid volume */}
-      <RoundedBox args={[1.24, 1.7, 0.62]} radius={0.06} smoothness={6} position={[0, -0.22, 0]}>
-        <meshPhysicalMaterial
-          color={accent}
-          transmission={0.55}
-          thickness={2}
-          roughness={0.25}
-          ior={1.36}
-          attenuationColor={accent}
-          attenuationDistance={0.8}
-        />
+      {/* Inner liquid volume — an opaque tinted core. Because it is opaque it
+          sits in the scene that the body glass refracts, so it reads as a full
+          flacon of fragrance seen through the glass without a second
+          transmission pass or any transparency sorting. */}
+      <RoundedBox
+        args={[1.24, 1.7, 0.62]}
+        radius={0.06}
+        smoothness={6}
+        position={[0, -0.22, 0]}
+      >
+        <meshStandardMaterial color={accent} roughness={0.4} metalness={0} />
       </RoundedBox>
 
-      {/* Frosted collar */}
+      {/* Frosted collar — frosted look comes from high roughness, not
+          transmission. */}
       <mesh position={[0, 1.28, 0]}>
         <cylinderGeometry args={[0.34, 0.4, 0.22, 48]} />
-        <meshPhysicalMaterial color="#e9e4d8" roughness={0.85} metalness={0} transmission={0.15} thickness={0.4} />
+        <meshPhysicalMaterial
+          color="#e9e4d8"
+          roughness={0.85}
+          metalness={0}
+        />
       </mesh>
 
-      {/* Cap */}
+      {/* Cap — a distinct sub-group so a later phase can lift it clear. */}
       <mesh position={[0, 1.62, 0]} castShadow>
         <cylinderGeometry args={[0.38, 0.38, 0.5, 48]} />
         <meshStandardMaterial color="#1b1b1d" roughness={0.35} metalness={0.9} />
