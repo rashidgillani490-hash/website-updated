@@ -114,10 +114,17 @@ export interface PricedCart {
   unavailable: string[];
 }
 
+/** Only `available` (or an unset availability, i.e. the sample data) can be
+ *  ordered. `coming-soon` / `sold-out` / `archived` all block checkout. */
+export function isOrderable(perfume: Perfume): boolean {
+  return !perfume.availability || perfume.availability === "available";
+}
+
 /**
  * Re-price the bag against the live catalogue. Server-authoritative: the
  * client's `unitPrice` is ignored, the repository price wins, and a line whose
- * perfume or size has vanished is reported rather than silently dropped.
+ * perfume is gone, unpublished, no longer sold in that size, or not currently
+ * `available` is reported rather than silently dropped or quietly ordered.
  */
 export function priceCart(items: CartItem[], catalogue: Perfume[]): PricedCart {
   const bySlug = new Map(catalogue.map((p) => [p.slug, p]));
@@ -127,8 +134,9 @@ export function priceCart(items: CartItem[], catalogue: Perfume[]): PricedCart {
   for (const item of items) {
     const perfume = bySlug.get(item.slug);
     const size = perfume?.sizes.find((s) => s.ml === item.ml);
-    if (!perfume || !size || perfume.availability === "archived") {
-      unavailable.push(`${item.name} · ${item.ml} ml`);
+    if (!perfume || !size || !isOrderable(perfume)) {
+      const label = perfume ? perfume.name : item.name;
+      unavailable.push(`${label} · ${item.ml} ml`);
       continue;
     }
     const qty = clampQty(item.qty);

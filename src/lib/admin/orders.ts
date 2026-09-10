@@ -86,11 +86,17 @@ export class OrderAdmin {
 
   async updateStatus(id: string, status: OrderStatus): Promise<WriteResult> {
     try {
-      const { error } = await this.db
+      // `select` back the row so a no-op (unknown id, or RLS hiding it) is
+      // reported instead of silently returning success.
+      const { data, error } = await this.db
         .from("orders")
         .update({ status })
-        .eq("id", id);
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        return { ok: false, error: "That order could not be found." };
+      }
       return { ok: true };
     } catch (error) {
       logError("updateStatus", error);

@@ -154,11 +154,33 @@ describe("priceCart", () => {
     expect(priced.unavailable).toHaveLength(2);
   });
 
-  it("treats an archived perfume as unavailable", () => {
-    const archived = [{ ...catalogue[0], availability: "archived" as const }];
+  it("blocks any non-available perfume (archived / sold-out / coming-soon)", () => {
     const items: CartItem[] = [
       { ...line({ slug: "lumiere-noire", ml: 50 }), qty: 1 },
     ];
-    expect(priceCart(items, archived).unavailable).toHaveLength(1);
+    for (const availability of ["archived", "sold-out", "coming-soon"] as const) {
+      const cat = [{ ...catalogue[0], availability }];
+      const priced = priceCart(items, cat);
+      expect(priced.items).toHaveLength(0);
+      expect(priced.unavailable).toEqual(["Lumière Noire · 50 ml"]);
+    }
+  });
+
+  it("still orders a perfume with no availability set (sample data)", () => {
+    const cat = [{ ...catalogue[0], availability: undefined }];
+    const items: CartItem[] = [
+      { ...line({ slug: "lumiere-noire", ml: 50 }), qty: 1 },
+    ];
+    const priced = priceCart(items, cat);
+    expect(priced.items).toHaveLength(1);
+    expect(priced.unavailable).toEqual([]);
+  });
+
+  it("labels an unavailable line with the catalogue name, not the client's", () => {
+    const cat = [{ ...catalogue[0], availability: "sold-out" as const }];
+    const items: CartItem[] = [
+      { ...line({ slug: "lumiere-noire", ml: 50, name: "Tampered Name" }), qty: 1 },
+    ];
+    expect(priceCart(items, cat).unavailable).toEqual(["Lumière Noire · 50 ml"]);
   });
 });
