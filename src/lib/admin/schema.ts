@@ -108,6 +108,12 @@ export const sizeSchema = z.object({
   ml: z.coerce.number().int("Size must be a whole number.").positive("Size must be greater than 0."),
   price: z.coerce.number().min(0, "Price cannot be negative."),
   displayOrder: z.coerce.number().int().min(0).default(0),
+  /** Units on hand. Blank / omitted → not tracked (checkout never blocks on it);
+   *  a number → tracked and decremented on checkout. */
+  stock: z
+    .union([z.literal(""), z.coerce.number().int().min(0, "Stock cannot be negative.")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
 });
 
 export const sizesSchema = z

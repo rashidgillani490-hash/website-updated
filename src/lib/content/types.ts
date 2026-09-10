@@ -53,6 +53,9 @@ export interface PerfumeSize {
   ml: number;
   /** Price in the store's base currency, minor units excluded. */
   price: number;
+  /** Units on hand. `undefined` (DB `NULL`) means stock is not tracked for this
+   *  size — checkout does not decrement or block on it. DB-backed sources only. */
+  stock?: number;
 }
 
 export interface Perfume {

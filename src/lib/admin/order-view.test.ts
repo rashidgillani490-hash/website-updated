@@ -8,6 +8,7 @@ import {
   paymentLabel,
   toAdminOrder,
   toAdminOrderListItem,
+  toStatusHistoryEntry,
   type AdminOrderListItem,
   type OrderItemRow,
   type OrderRow,
@@ -142,6 +143,43 @@ describe("toAdminOrder", () => {
   it("tolerates a null item list", () => {
     const order = toAdminOrder(row, null as unknown as OrderItemRow[]);
     expect(order.items).toEqual([]);
+  });
+});
+
+describe("toStatusHistoryEntry", () => {
+  it("maps a system 'placed' row (from = null)", () => {
+    expect(
+      toStatusHistoryEntry({
+        from_status: null,
+        to_status: "pending",
+        actor_type: "system",
+        actor_label: "checkout",
+        note: null,
+        created_at: "2026-09-11T10:00:00Z",
+      }),
+    ).toEqual({
+      from: null,
+      to: "pending",
+      actorType: "system",
+      actorLabel: "checkout",
+      note: "",
+      at: "2026-09-11T10:00:00Z",
+    });
+  });
+
+  it("maps an admin transition and defaults an unknown from-status to null", () => {
+    const entry = toStatusHistoryEntry({
+      from_status: "weird",
+      to_status: "cancelled",
+      actor_type: "admin",
+      actor_label: "admin@example.com",
+      note: "customer called",
+      created_at: "2026-09-11T12:00:00Z",
+    });
+    expect(entry.from).toBeNull();
+    expect(entry.to).toBe("cancelled");
+    expect(entry.actorLabel).toBe("admin@example.com");
+    expect(entry.note).toBe("customer called");
   });
 });
 

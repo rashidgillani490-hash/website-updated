@@ -42,6 +42,15 @@ export interface OrderItemRow {
   line_total: number | string | null;
 }
 
+export interface StatusHistoryRow {
+  from_status: string | null;
+  to_status: string | null;
+  actor_type: string | null;
+  actor_label: string | null;
+  note: string | null;
+  created_at: string | null;
+}
+
 /* -------------------------------------------------------------- domain shapes */
 
 export interface AdminOrderListItem {
@@ -87,6 +96,17 @@ export interface AdminOrder {
   total: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StatusHistoryEntry {
+  from: OrderStatus | null;
+  to: OrderStatus;
+  /** "system" (checkout), "admin", or "customer". */
+  actorType: string;
+  /** Admin email, "checkout", etc. — may be empty. */
+  actorLabel: string;
+  note: string;
+  at: string;
 }
 
 /* --------------------------------------------------------- status presentation */
@@ -182,6 +202,17 @@ export function toAdminOrder(row: OrderRow, itemRows: OrderItemRow[]): AdminOrde
     total: num(row.total),
     createdAt: str(row.created_at),
     updatedAt: str(row.updated_at),
+  };
+}
+
+export function toStatusHistoryEntry(row: StatusHistoryRow): StatusHistoryEntry {
+  return {
+    from: isOrderStatus(row.from_status) ? row.from_status : null,
+    to: toStatus(row.to_status),
+    actorType: str(row.actor_type, "system"),
+    actorLabel: str(row.actor_label),
+    note: str(row.note),
+    at: str(row.created_at),
   };
 }
 

@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOrderAdmin } from "@/lib/admin/context";
 import { formatDateTime, formatPrice } from "@/lib/utils";
-import { paymentLabel } from "@/lib/admin/order-view";
+import {
+  ORDER_STATUS_META,
+  paymentLabel,
+  type StatusHistoryEntry,
+} from "@/lib/admin/order-view";
 import { OrderStatusControl } from "@/components/admin/OrderStatusControl";
 
 interface PageProps {
@@ -11,7 +15,8 @@ interface PageProps {
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const order = await (await getOrderAdmin()).get(id);
+  const repo = await getOrderAdmin();
+  const [order, history] = await Promise.all([repo.get(id), repo.history(id)]);
   if (!order) notFound();
 
   return (
@@ -127,8 +132,41 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           </table>
         </div>
       </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="font-serif text-lg font-light text-ivory">
+          Status history
+        </h2>
+        {history.length === 0 ? (
+          <p className="text-sm text-smoke">No recorded changes.</p>
+        ) : (
+          <ol className="flex flex-col divide-y divide-line border-y border-line text-sm">
+            {history.map((entry, i) => (
+              <li
+                key={`${entry.at}-${i}`}
+                className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+              >
+                <span className="text-ivory-dim">
+                  {historyLabel(entry)}
+                </span>
+                <span className="text-[0.65rem] uppercase tracking-[var(--tracking-wide)] text-smoke">
+                  {formatDateTime(entry.at)}
+                  {entry.actorLabel ? ` · ${entry.actorLabel}` : ` · ${entry.actorType}`}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </div>
   );
+}
+
+function historyLabel(entry: StatusHistoryEntry): string {
+  const to = ORDER_STATUS_META[entry.to]?.label ?? entry.to;
+  if (!entry.from) return `Order placed — ${to}`;
+  const from = ORDER_STATUS_META[entry.from]?.label ?? entry.from;
+  return `${from} → ${to}`;
 }
 
 function Row({ label, value }: { label: string; value: string }) {

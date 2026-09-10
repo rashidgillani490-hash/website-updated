@@ -6,16 +6,33 @@ import {
   filterOrders,
   toAdminOrder,
   toAdminOrderListItem,
+  toStatusHistoryEntry,
   type AdminOrder,
   type AdminOrderListItem,
   type OrderItemRow,
   type OrderQuery,
   type OrderRow,
+  type StatusHistoryEntry,
+  type StatusHistoryRow,
 } from "./order-view";
 
 export type WriteResult =
   | { ok: true }
   | { ok: false; error: string };
+
+export interface StatusChangeResult {
+  ok: true;
+  /** false when the order was already in that status (no-op). */
+  changed: boolean;
+  from: OrderStatus;
+  to: OrderStatus;
+}
+export type UpdateStatusResult = StatusChangeResult | { ok: false; error: string };
+
+export interface StatusActor {
+  id?: string;
+  label?: string;
+}
 
 const LIST_SELECT =
   "id, reference, status, payment_method, customer_name, customer_phone, city, currency, total, created_at, order_items(count)";
@@ -84,23 +101,71 @@ export class OrderAdmin {
     }
   }
 
-  async updateStatus(id: string, status: OrderStatus): Promise<WriteResult> {
+  /**
+   * Move an order along its workflow via the `set_order_status` RPC — one
+   * transaction that re-checks `is_admin()`, writes a tamper-resistant
+   * `order_status_history` row (actor recorded), and returns stock when an
+   * order is cancelled. See migration 20260910160000.
+   */
+  async updateStatus(
+    id: string,
+    status: OrderStatus,
+    actor: StatusActor = {},
+  ): Promise<UpdateStatusResult> {
     try {
-      // `select` back the row so a no-op (unknown id, or RLS hiding it) is
-      // reported instead of silently returning success.
-      const { data, error } = await this.db
-        .from("orders")
-        .update({ status })
-        .eq("id", id)
-        .select("id");
+      const { data, error } = await this.db.rpc("set_order_status", {
+        p_order_id: id,
+        p_status: status,
+        p_actor_id: actor.id ?? null,
+        p_actor_label: actor.label ?? null,
+        p_note: null,
+      });
       if (error) throw error;
-      if (!data || data.length === 0) {
+
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) {
+        return { ok: false, error: "That status change didn't save. Please try again." };
+      }
+      return {
+        ok: true,
+        changed: Boolean(row.changed),
+        from: row.from_status as OrderStatus,
+        to: row.to_status as OrderStatus,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error && "message" in error
+            ? String((error as { message: unknown }).message)
+            : String(error);
+      logError("updateStatus", error);
+      if (message.includes("order_not_found")) {
         return { ok: false, error: "That order could not be found." };
       }
-      return { ok: true };
-    } catch (error) {
-      logError("updateStatus", error);
+      if (message.includes("invalid_status")) {
+        return { ok: false, error: "Invalid status change." };
+      }
+      if (message.includes("not_authorized")) {
+        return { ok: false, error: "Not authorised." };
+      }
       return { ok: false, error: "That status change didn't save. Please try again." };
+    }
+  }
+
+  /** The status trail for one order, oldest first. */
+  async history(orderId: string): Promise<StatusHistoryEntry[]> {
+    try {
+      const { data, error } = await this.db
+        .from("order_status_history")
+        .select("from_status, to_status, actor_type, actor_label, note, created_at")
+        .eq("order_id", orderId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as StatusHistoryRow[]).map(toStatusHistoryEntry);
+    } catch (error) {
+      logError("history", error);
+      return [];
     }
   }
 

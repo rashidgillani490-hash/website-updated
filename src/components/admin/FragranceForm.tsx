@@ -60,8 +60,12 @@ export function FragranceForm({ perfume }: FragranceFormProps) {
 
   const [sizes, setSizes] = useState<SizeRow[]>(
     perfume?.sizes.length
-      ? perfume.sizes.map((s) => ({ ml: String(s.ml), price: String(s.price) }))
-      : [{ ml: "", price: "" }],
+      ? perfume.sizes.map((s) => ({
+          ml: String(s.ml),
+          price: String(s.price),
+          stock: typeof s.stock === "number" ? String(s.stock) : "",
+        }))
+      : [{ ml: "", price: "", stock: "" }],
   );
   const [notes, setNotes] = useState<NoteRow[]>(
     perfume?.notes.map((n) => ({
@@ -106,6 +110,7 @@ export function FragranceForm({ perfume }: FragranceFormProps) {
       sizes: sizes.map((s, i) => ({
         ml: s.ml,
         price: s.price,
+        stock: s.stock.trim(),
         displayOrder: i,
       })),
       notes: notes.map((n, i) => ({

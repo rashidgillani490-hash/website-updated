@@ -83,6 +83,21 @@ describe("sizeSchema / sizesSchema", () => {
     expect(sizesSchema.safeParse([]).success).toBe(false);
     expect(sizesSchema.safeParse([{ ml: "50", price: "1" }]).success).toBe(true);
   });
+
+  it("stock: blank / omitted → null; a number → that number; negative → error", () => {
+    const blank = sizeSchema.safeParse({ ml: "50", price: "1", stock: "" });
+    expect(blank.success && blank.data.stock).toBe(null);
+
+    const omitted = sizeSchema.safeParse({ ml: "50", price: "1" });
+    expect(omitted.success && omitted.data.stock).toBe(null);
+
+    const tracked = sizeSchema.safeParse({ ml: "50", price: "1", stock: "12" });
+    expect(tracked.success && tracked.data.stock).toBe(12);
+
+    expect(sizeSchema.safeParse({ ml: "50", price: "1", stock: "-1" }).success).toBe(
+      false,
+    );
+  });
 });
 
 describe("noteSchema", () => {

@@ -133,6 +133,17 @@ export async function placeOrder(payload: unknown): Promise<PlaceOrderResult> {
   if (!saved.ok) {
     // No order was created — let the customer retry immediately.
     releaseIntent(intentHash);
+    if (saved.outOfStock && saved.outOfStock.length > 0) {
+      const names = new Set(saved.outOfStock);
+      return {
+        ok: false,
+        error:
+          "Some items just sold out. Please adjust the quantities in your bag and try again.",
+        unavailable: priced.items
+          .filter((i) => names.has(i.slug))
+          .map((i) => `${i.name} · ${i.ml} ml`),
+      };
+    }
     return {
       ok: false,
       error: "We couldn't place your order just now. Please try again.",

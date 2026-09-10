@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabaseClient } from "@/lib/supabase/admin";
 import { round2 } from "./cart-store";
 import {
@@ -95,45 +96,55 @@ function serviceConfigured(): boolean {
  *   - otherwise (local `next dev` / test): log and return ok, so the flow can
  *     be exercised end to end without a backend.
  */
+export type PersistResult =
+  | { ok: true }
+  | { ok: false; outOfStock?: string[] };
+
+/** Extract slugs from one or more `insufficient_stock:<slug>` markers. */
+function outOfStockSlugs(message: string): string[] {
+  return [...message.matchAll(/insufficient_stock:([a-z0-9-]+)/gi)].map(
+    (m) => m[1],
+  );
+}
+
 export async function persistOrder(
   order: Order,
-): Promise<{ ok: true } | { ok: false }> {
-  if (!serviceConfigured()) {
-    if (process.env.NODE_ENV === "production") {
-      console.error(
-        `[commerce] persistOrder ${order.reference}: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured — refusing to accept an unrecorded order.`,
+  /** Injected in tests; production always uses the service-role client. */
+  clientOverride?: SupabaseClient,
+): Promise<PersistResult> {
+  let db = clientOverride;
+  if (!db) {
+    if (!serviceConfigured()) {
+      if (process.env.NODE_ENV === "production") {
+        console.error(
+          `[commerce] persistOrder ${order.reference}: NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured — refusing to accept an unrecorded order.`,
+        );
+        return { ok: false };
+      }
+      console.info(
+        `[commerce] Supabase not configured — order ${order.reference} not persisted (dev: ${order.items.length} lines, ${order.currency} ${order.total}).`,
       );
-      return { ok: false };
+      return { ok: true };
     }
-    console.info(
-      `[commerce] Supabase not configured — order ${order.reference} not persisted (dev: ${order.items.length} lines, ${order.currency} ${order.total}).`,
-    );
-    return { ok: true };
+    db = getServiceSupabaseClient();
   }
 
   try {
-    const db = getServiceSupabaseClient();
-
-    const { error: orderError } = await db.from("orders").insert({
-      id: order.id,
-      reference: order.reference,
-      status: order.status,
-      payment_method: order.paymentMethod,
-      customer_name: order.customer.name,
-      customer_phone: order.customer.phone,
-      customer_email: order.customer.email ?? null,
-      address_line: order.customer.address,
-      city: order.customer.city,
-      notes: order.customer.notes ?? null,
-      currency: order.currency,
-      subtotal: order.subtotal,
-      total: order.total,
-    });
-    if (orderError) throw orderError;
-
-    const { error: itemsError } = await db.from("order_items").insert(
-      order.items.map((i) => ({
-        order_id: order.id,
+    // One transactional RPC: creates the order + lines and decrements tracked
+    // stock atomically, so concurrent checkouts cannot oversell and a failure
+    // anywhere rolls the whole order back. See migration 20260910160000.
+    const { error } = await db.rpc("place_order", {
+      p_reference: order.reference,
+      p_currency: order.currency,
+      p_customer: {
+        name: order.customer.name,
+        phone: order.customer.phone,
+        email: order.customer.email ?? "",
+        address: order.customer.address,
+        city: order.customer.city,
+        notes: order.customer.notes ?? "",
+      },
+      p_items: order.items.map((i) => ({
         perfume_id: i.perfumeId || null,
         slug: i.slug,
         name: i.name,
@@ -143,20 +154,18 @@ export async function persistOrder(
         qty: i.qty,
         line_total: i.lineTotal,
       })),
-    );
-    if (itemsError) {
-      // Roll the order row back so a failed line insert doesn't leave a
-      // headless order. Surface it if the rollback itself fails.
-      const { error: rollbackError } = await db
-        .from("orders")
-        .delete()
-        .eq("id", order.id);
-      if (rollbackError) {
-        console.error(
-          `[commerce] persistOrder ${order.reference}: order_items insert failed and the order-row rollback also failed — a headless order row may remain.`,
-        );
+    });
+
+    if (error) {
+      const message =
+        typeof error === "object" && error && "message" in error
+          ? String((error as { message: unknown }).message)
+          : "";
+      const stockSlugs = outOfStockSlugs(message);
+      if (stockSlugs.length > 0) {
+        return { ok: false, outOfStock: stockSlugs };
       }
-      throw itemsError;
+      throw error;
     }
 
     return { ok: true };

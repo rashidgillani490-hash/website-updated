@@ -3,6 +3,8 @@
 export interface SizeRow {
   ml: string;
   price: string;
+  /** Blank = stock not tracked; a number = tracked + decremented on checkout. */
+  stock: string;
 }
 
 interface SizesEditorProps {
@@ -54,6 +56,15 @@ export function SizesEditor({ value, onChange, error }: SizesEditorProps) {
                 value={row.price}
                 onChange={(e) => update(i, { price: e.target.value })}
               />
+              <input
+                aria-label={`Size ${i + 1} stock`}
+                inputMode="numeric"
+                className={control}
+                placeholder="stock (∞)"
+                title="Leave blank to not track stock for this size"
+                value={row.stock}
+                onChange={(e) => update(i, { stock: e.target.value })}
+              />
             </div>
             <div className="flex gap-1">
               <button
@@ -90,9 +101,14 @@ export function SizesEditor({ value, onChange, error }: SizesEditorProps) {
 
       {error ? <span className="text-xs text-red-400">{error}</span> : null}
 
+      <p className="text-xs text-smoke">
+        Stock is optional — leave it blank to keep a size always available. A
+        number is decremented at checkout and cannot go below zero.
+      </p>
+
       <button
         type="button"
-        onClick={() => onChange([...value, { ml: "", price: "" }])}
+        onClick={() => onChange([...value, { ml: "", price: "", stock: "" }])}
         className="w-fit border border-line px-4 py-2 text-[0.65rem] uppercase tracking-[var(--tracking-wide)] text-ivory-dim transition-colors duration-300 hover:border-champagne hover:text-champagne"
       >
         Add size

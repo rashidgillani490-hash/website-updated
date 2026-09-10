@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { AdminRepository } from "@/lib/admin/repository";
 import { OrderAdmin } from "@/lib/admin/orders";
+import { notifyOrderCancelled } from "@/lib/commerce/notifications";
 import {
   deletePerfumeImage,
   uploadPerfumeImage,
@@ -287,15 +288,31 @@ export async function updateOrderStatus(
   id: string,
   status: string,
 ): Promise<ActionResult> {
-  const { supabase } = await requireAdmin();
+  const { supabase, user } = await requireAdmin();
   const parsed = orderStatusSchema.safeParse({ id, status });
   if (!parsed.success) return { ok: false, error: "Invalid status change." };
 
-  const result = await new OrderAdmin(supabase).updateStatus(
-    parsed.data.id,
-    parsed.data.status,
-  );
+  const orders = new OrderAdmin(supabase);
+
+  // Fetch the order first only when we may need its contact details for a
+  // cancellation notification.
+  const cancelling = parsed.data.status === "cancelled";
+  const before = cancelling ? await orders.get(parsed.data.id) : null;
+
+  const result = await orders.updateStatus(parsed.data.id, parsed.data.status, {
+    id: user.id,
+    label: user.email ?? undefined,
+  });
   if (!result.ok) return { ok: false, error: result.error };
+
+  // Fire the cancellation notification only on a real transition to cancelled.
+  if (cancelling && result.changed && result.to === "cancelled" && before) {
+    try {
+      await notifyOrderCancelled(before);
+    } catch (error) {
+      console.error("[admin] cancellation notification failed:", error);
+    }
+  }
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${parsed.data.id}`);

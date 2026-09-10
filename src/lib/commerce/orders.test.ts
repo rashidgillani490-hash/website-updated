@@ -111,6 +111,80 @@ describe("persistOrder — not configured", () => {
   });
 });
 
+describe("persistOrder — via place_order RPC (injected client)", () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => errorSpy.mockRestore());
+
+  const order = buildOrder({
+    customer: {
+      name: "A. Dubois",
+      phone: "+1 415 555 0134",
+      address: "9 Rue de Sévigné",
+      city: "Paris",
+    },
+    items,
+    paymentMethod: "cod",
+    currency: "USD",
+  });
+
+  const fakeClient = (rpcResult: { data?: unknown; error?: unknown }) =>
+    ({
+      rpc: (name: string, args: unknown) => {
+        rpcSpy(name, args);
+        return Promise.resolve({
+          data: rpcResult.data ?? null,
+          error: rpcResult.error ?? null,
+        });
+      },
+    }) as unknown as import("@supabase/supabase-js").SupabaseClient;
+
+  let rpcSpy: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    rpcSpy = vi.fn();
+  });
+
+  it("calls place_order with server-authoritative items and succeeds", async () => {
+    const result = await persistOrder(
+      order,
+      fakeClient({ data: [{ order_id: "x", order_reference: order.reference }] }),
+    );
+    expect(result).toEqual({ ok: true });
+    expect(rpcSpy).toHaveBeenCalledWith(
+      "place_order",
+      expect.objectContaining({
+        p_reference: order.reference,
+        p_currency: "USD",
+        p_items: expect.arrayContaining([
+          expect.objectContaining({ slug: "lumiere-noire", ml: 50, qty: 2 }),
+        ]),
+      }),
+    );
+  });
+
+  it("reports out-of-stock slugs from an insufficient_stock error", async () => {
+    const result = await persistOrder(
+      order,
+      fakeClient({ error: { message: "insufficient_stock:lumiere-noire" } }),
+    );
+    expect(result).toEqual({ ok: false, outOfStock: ["lumiere-noire"] });
+    expect(errorSpy).not.toHaveBeenCalled(); // handled, not an unexpected failure
+  });
+
+  it("returns { ok: false } (no PII) on any other RPC error", async () => {
+    const result = await persistOrder(
+      order,
+      fakeClient({ error: { message: "boom", code: "XX000" } }),
+    );
+    expect(result).toEqual({ ok: false });
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/persistOrder .* failed \(code XX000\)/),
+    );
+  });
+});
+
 describe("toOrderSummary", () => {
   it("drops the id and raw customer data, keeps the safe view", () => {
     const order = buildOrder({

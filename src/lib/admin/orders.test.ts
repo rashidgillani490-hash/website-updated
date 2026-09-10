@@ -13,9 +13,16 @@ function fakeDb(config: {
   affected?: unknown[];
   count?: number;
   error?: unknown;
+  rpc?: unknown;
+  rpcError?: unknown;
 }): SupabaseClient {
   const err = config.error ?? null;
   const client = {
+    rpc: () =>
+      Promise.resolve({
+        data: config.rpc ?? null,
+        error: config.rpcError ?? null,
+      }),
     from() {
       const b: Record<string, unknown> = {};
       const chain = () => b;
@@ -120,24 +127,56 @@ describe("OrderAdmin", () => {
     expect(filtered[0].reference).toBe("ML-BBB222");
   });
 
-  it("updateStatus() succeeds when a row is affected", async () => {
-    const repo = new OrderAdmin(fakeDb({ affected: [{ id: orderRow.id }] }));
-    expect(await repo.updateStatus(orderRow.id, "confirmed")).toEqual({ ok: true });
+  it("updateStatus() reports the transition returned by set_order_status", async () => {
+    const repo = new OrderAdmin(
+      fakeDb({ rpc: [{ changed: true, from_status: "pending", to_status: "confirmed" }] }),
+    );
+    const res = await repo.updateStatus(orderRow.id, "confirmed", {
+      id: "actor-uuid",
+      label: "admin@example.com",
+    });
+    expect(res).toEqual({
+      ok: true,
+      changed: true,
+      from: "pending",
+      to: "confirmed",
+    });
   });
 
-  it("updateStatus() reports a not-found when nothing was affected", async () => {
-    const repo = new OrderAdmin(fakeDb({ affected: [] }));
+  it("updateStatus() reports changed:false for a no-op", async () => {
+    const repo = new OrderAdmin(
+      fakeDb({ rpc: [{ changed: false, from_status: "shipped", to_status: "shipped" }] }),
+    );
+    const res = await repo.updateStatus(orderRow.id, "shipped");
+    expect(res).toEqual({ ok: true, changed: false, from: "shipped", to: "shipped" });
+  });
+
+  it("updateStatus() maps the RPC's order_not_found error", async () => {
+    const repo = new OrderAdmin(fakeDb({ rpcError: { message: "order_not_found" } }));
     const res = await repo.updateStatus(orderRow.id, "confirmed");
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/could not be found/i);
+    expect(errSpy).toHaveBeenCalled();
   });
 
-  it("updateStatus() returns a plain message (not the raw error) on failure", async () => {
-    const repo = new OrderAdmin(fakeDb({ error: { message: "db exploded" } }));
+  it("updateStatus() returns a plain message (not the raw error) on an unexpected failure", async () => {
+    const repo = new OrderAdmin(fakeDb({ rpcError: { message: "db exploded" } }));
     const res = await repo.updateStatus(orderRow.id, "shipped");
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).not.toMatch(/db exploded/);
     expect(errSpy).toHaveBeenCalled();
+  });
+
+  it("history() maps rows oldest-first, initial row has from=null", async () => {
+    const rows = [
+      { from_status: null, to_status: "pending", actor_type: "system", actor_label: "checkout", note: null, created_at: "2026-09-11T10:00:00Z" },
+      { from_status: "pending", to_status: "confirmed", actor_type: "admin", actor_label: "admin@example.com", note: null, created_at: "2026-09-11T11:00:00Z" },
+    ];
+    const repo = new OrderAdmin(fakeDb({ list: rows }));
+    const h = await repo.history(orderRow.id);
+    expect(h).toHaveLength(2);
+    expect(h[0]).toMatchObject({ from: null, to: "pending", actorType: "system", actorLabel: "checkout" });
+    expect(h[1]).toMatchObject({ from: "pending", to: "confirmed", actorLabel: "admin@example.com" });
   });
 
   it("counts() returns totals, and zeroes on error", async () => {

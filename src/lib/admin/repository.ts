@@ -230,6 +230,7 @@ export class AdminRepository {
             ml: s.ml,
             price: s.price,
             display_order: s.displayOrder ?? i,
+            stock: s.stock ?? null,
           })),
         );
         if (ins.error) throw ins.error;

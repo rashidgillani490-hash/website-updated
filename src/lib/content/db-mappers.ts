@@ -54,6 +54,7 @@ export interface SizeRow {
   ml: number | null;
   price: number | string | null;
   display_order: number | null;
+  stock: number | null;
 }
 
 export interface NoteRow {
@@ -169,7 +170,11 @@ function toSizes(rows: SizeRow[] | null): PerfumeSize[] {
   return rows
     .slice()
     .sort(byDisplayOrder)
-    .map((r) => ({ ml: num(r.ml), price: num(r.price) }))
+    .map((r) => ({
+      ml: num(r.ml),
+      price: num(r.price),
+      ...(typeof r.stock === "number" ? { stock: r.stock } : {}),
+    }))
     .filter((s) => s.ml > 0);
 }
 
