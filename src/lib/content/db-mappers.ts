@@ -192,7 +192,11 @@ function toNotes(rows: NoteRow[] | null) {
     .filter((n) => n.name !== "");
 }
 
-function toImages(rows: ImageRow[] | null): {
+function toImages(
+  rows: ImageRow[] | null,
+  /** Fallback alt when a row has none — keeps every rendered <img> described. */
+  fallbackAlt: string,
+): {
   hero: PerfumeImage | null;
   gallery: PerfumeImage[];
 } {
@@ -203,7 +207,7 @@ function toImages(rows: ImageRow[] | null): {
     .filter((r) => str(r.path) !== "");
   const map = (r: ImageRow): PerfumeImage => ({
     src: resolveImagePath(str(r.path)),
-    alt: str(r.alt),
+    alt: str(r.alt).trim() || fallbackAlt,
   });
   const hero = ordered.find((r) => str(r.role) === "hero");
   return {
@@ -223,7 +227,7 @@ export function toPerfume(row: PerfumeRow): Perfume | null {
   const sizes = toSizes(row.perfume_sizes);
   if (slug === "" || name === "" || sizes.length === 0) return null;
 
-  const { hero, gallery } = toImages(row.perfume_images);
+  const { hero, gallery } = toImages(row.perfume_images, name);
   const heroImage: PerfumeImage =
     hero ?? gallery[0] ?? { src: resolveImagePath("/images/grain.svg"), alt: name };
 

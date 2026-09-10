@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+// Override the site-wide `index, follow` from the root layout so a 404 never
+// advertises itself as indexable. (Next also injects its own `noindex` for
+// not-found responses; a second, identical directive is harmless.)
+export const metadata: Metadata = {
+  title: "Page not found",
+  robots: { index: false, follow: false },
+};
 
 export default function NotFound() {
   return (

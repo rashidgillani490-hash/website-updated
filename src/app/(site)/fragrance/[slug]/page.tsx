@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { contentRepository } from "@/lib/content";
+import { toParagraphs } from "@/lib/utils";
+import { baseOpenGraph } from "@/lib/seo";
 import { Container } from "@/components/ui/Container";
 import { PerfumeDetail } from "@/components/perfume/PerfumeDetail";
 
@@ -20,15 +22,36 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const perfume = await contentRepository.getPerfumeBySlug(slug);
-  if (!perfume) return { title: "Fragrance not found" };
+  const [perfume, settings] = await Promise.all([
+    contentRepository.getPerfumeBySlug(slug),
+    contentRepository.getSettings(),
+  ]);
+  // The page 404s below; `app/not-found.tsx` supplies the noindex metadata.
+  if (!perfume) return {};
+
+  const description =
+    perfume.tagline?.trim() ||
+    toParagraphs(perfume.description)[0] ||
+    `${perfume.name} by ${settings.brandName}.`;
+  const canonical = `/fragrance/${perfume.slug}`;
+  const image = { url: perfume.hero.src, alt: perfume.hero.alt || perfume.name };
+
   return {
     title: perfume.name,
-    description: perfume.tagline,
+    description,
+    alternates: { canonical },
     openGraph: {
-      title: perfume.name,
-      description: perfume.tagline,
-      images: [{ url: perfume.hero.src }],
+      ...baseOpenGraph(settings.brandName),
+      title: `${perfume.name} — ${settings.brandName}`,
+      description,
+      url: canonical,
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${perfume.name} — ${settings.brandName}`,
+      description,
+      images: [image.url],
     },
   };
 }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Jost } from "next/font/google";
 import { contentRepository } from "@/lib/content";
+import { getSiteUrl } from "@/lib/seo";
 import { MotionProvider } from "@/components/providers/MotionProvider";
 import "./globals.css";
 
@@ -22,20 +23,37 @@ const sans = Jost({
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await contentRepository.getSettings();
   const favicon = settings.faviconUrl?.trim();
+  const title = `${settings.brandName} — ${settings.tagline}`;
+
   return {
-    metadataBase: new URL("https://maisonlumiere.example"),
+    // Resolved from NEXT_PUBLIC_SITE_URL (or Vercel), localhost until set — no
+    // domain is hardcoded. Makes every relative OG image / canonical absolute.
+    metadataBase: new URL(getSiteUrl()),
     title: {
-      default: `${settings.brandName} — ${settings.tagline}`,
+      default: title,
       template: `%s — ${settings.brandName}`,
     },
     description: settings.description,
+    applicationName: settings.brandName,
     openGraph: {
-      title: settings.brandName,
-      description: settings.description,
       type: "website",
+      siteName: settings.brandName,
+      title,
+      description: settings.description,
+      url: "/",
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: settings.description,
     },
     ...(favicon ? { icons: { icon: favicon } } : {}),
-    robots: { index: true, follow: true },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    },
   };
 }
 

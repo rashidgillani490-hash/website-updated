@@ -1,17 +1,32 @@
 import type { Metadata } from "next";
 import { contentRepository } from "@/lib/content";
+import { baseOpenGraph } from "@/lib/seo";
 import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/ui/Reveal";
 import { PerfumeCollection } from "@/components/perfume/PerfumeCollection";
 
-export const metadata: Metadata = {
-  title: "Collection",
-  description:
-    "The full Maison Lumière collection — auteur fragrances, each signed by its perfumer and made in limited batches.",
-};
-
 /** Serve statically; refresh the catalogue from the content source hourly. */
 export const revalidate = 3600;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { settings, perfumes } = await contentRepository.getContent();
+  const description = `The full ${settings.brandName} collection — ${perfumes.length} auteur fragrances, each signed by its perfumer and made in limited batches.`;
+  const opener = perfumes.find((p) => p.featured) ?? perfumes[0];
+  return {
+    title: "Collection",
+    description,
+    alternates: { canonical: "/collection" },
+    openGraph: {
+      ...baseOpenGraph(settings.brandName),
+      title: `Collection — ${settings.brandName}`,
+      description,
+      url: "/collection",
+      images: opener
+        ? [{ url: opener.hero.src, alt: opener.hero.alt || settings.brandName }]
+        : undefined,
+    },
+  };
+}
 
 export default async function CollectionPage() {
   const { settings, perfumes } = await contentRepository.getContent();

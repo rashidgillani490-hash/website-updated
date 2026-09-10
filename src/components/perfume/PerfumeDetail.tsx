@@ -65,9 +65,14 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
   });
 
   return (
-    <div className="pb-32">
+    <article className="pb-32">
       {/* Overview */}
-      <Container bleed className="grid gap-14 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pt-24">
+      <Container
+        as="section"
+        aria-label={`${perfume.name} overview`}
+        bleed
+        className="grid gap-14 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pt-24"
+      >
         <div
           ref={stageRef}
           className="relative order-2 h-[60svh] min-h-[420px] overflow-hidden bg-ink-700 lg:order-1 lg:h-[80svh]"
@@ -157,7 +162,7 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
       </Container>
 
       {/* Story */}
-      <Container className="mt-28">
+      <Container as="section" aria-label="The composition" className="mt-28">
         <div className="grid gap-10 md:grid-cols-[0.4fr_0.6fr]">
           <Reveal>
             <span className="eyebrow">The composition</span>
@@ -189,7 +194,7 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
       </Container>
 
       {/* Notes */}
-      <Container className="mt-28">
+      <Container as="section" aria-label="Olfactive pyramid" className="mt-28">
         <SectionHeading
           eyebrow="Olfactive pyramid"
           title="How it moves"
@@ -200,23 +205,25 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
       </Container>
 
       {/* Gallery */}
-      <Container bleed className="mt-28">
-        <div className="grid gap-6 sm:grid-cols-2">
-          {perfume.gallery.map((image, i) => (
-            <Reveal key={image.src + i} delay={i * 0.06}>
-              <div className="relative aspect-[4/5] overflow-hidden bg-ink-700">
-                <Image
-                  src={image.src}
-                  alt={image.alt}
-                  fill
-                  sizes="(max-width: 640px) 100vw, 50vw"
-                  className="object-cover"
-                />
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </Container>
-    </div>
+      {perfume.gallery.length > 0 ? (
+        <Container as="section" aria-label={`${perfume.name} gallery`} bleed className="mt-28">
+          <div className="grid gap-6 sm:grid-cols-2">
+            {perfume.gallery.map((image, i) => (
+              <Reveal key={image.src + i} delay={i * 0.06}>
+                <div className="relative aspect-[4/5] overflow-hidden bg-ink-700">
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                    className="object-cover"
+                  />
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Container>
+      ) : null}
+    </article>
   );
 }

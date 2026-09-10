@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { contentRepository } from "@/lib/content";
 import { splitLines } from "@/lib/utils";
+import { baseOpenGraph } from "@/lib/seo";
 import { CinematicPerfumeStory } from "@/components/home/CinematicPerfumeStory";
 import { ScrollStory } from "@/components/home/ScrollStory";
 import { FeaturedCollection } from "@/components/home/FeaturedCollection";
@@ -8,6 +10,24 @@ import { Invitation } from "@/components/home/Invitation";
 
 /** Serve statically; refresh content from the content source hourly. */
 export const revalidate = 3600;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { settings, perfumes } = await contentRepository.getContent();
+  const opener = perfumes.find((p) => p.featured) ?? perfumes[0];
+  const title = `${settings.brandName} — ${settings.tagline}`;
+  return {
+    alternates: { canonical: "/" },
+    openGraph: {
+      ...baseOpenGraph(settings.brandName),
+      title,
+      description: settings.description,
+      url: "/",
+      images: opener
+        ? [{ url: opener.hero.src, alt: opener.hero.alt || settings.brandName }]
+        : undefined,
+    },
+  };
+}
 
 const STORY_STEPS = [
   {
