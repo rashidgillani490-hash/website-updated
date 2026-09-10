@@ -1,16 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useScroll } from "motion/react";
 import type { Perfume, SiteSettings } from "@/lib/content";
 import { PerfumeExperience } from "@/components/three/PerfumeExperience";
+import { useCart } from "@/components/cart/CartProvider";
 import { FragranceNotes } from "./FragranceNotes";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { formatPrice, toParagraphs } from "@/lib/utils";
+
+const UNAVAILABLE_LABEL: Record<string, string> = {
+  "sold-out": "Sold out",
+  "coming-soon": "Coming soon",
+  archived: "Unavailable",
+};
 
 interface PerfumeDetailProps {
   perfume: Perfume;
@@ -21,6 +28,33 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
   const [sizeIndex, setSizeIndex] = useState(0);
   const size = perfume.sizes[sizeIndex];
   const paragraphs = toParagraphs(perfume.description);
+
+  const { add } = useCart();
+  const [added, setAdded] = useState(false);
+  const availability = perfume.availability ?? "available";
+  const purchasable = availability === "available" && Boolean(size);
+
+  useEffect(() => {
+    if (!added) return;
+    const t = setTimeout(() => setAdded(false), 1800);
+    return () => clearTimeout(t);
+  }, [added]);
+
+  const addToBag = () => {
+    if (!purchasable) return;
+    add({
+      perfumeId: perfume.id,
+      slug: perfume.slug,
+      name: perfume.name,
+      concentration: perfume.concentration,
+      ml: size.ml,
+      unitPrice: size.price,
+      image: perfume.gallery[0]?.src ?? perfume.hero.src,
+      imageAlt: perfume.gallery[0]?.alt ?? perfume.hero.alt,
+      accent: perfume.accent,
+    });
+    setAdded(true);
+  };
 
   // Same reusable animation system as the homepage story, in "showcase" mode:
   // the selected perfume's flacon turns with scroll while its panel is in view.
@@ -96,16 +130,27 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
           </Reveal>
 
           <Reveal delay={0.2}>
-            <div className="mt-10 flex items-center gap-6">
+            <div className="mt-10 flex flex-wrap items-center gap-6">
               <span className="font-serif text-2xl text-ivory">
                 {formatPrice(size.price, settings.currency)}
               </span>
-              <Button variant="solid" disabled>
-                Add to bag — soon
+              <Button
+                variant="solid"
+                onClick={addToBag}
+                disabled={!purchasable}
+                aria-live="polite"
+              >
+                {!purchasable
+                  ? UNAVAILABLE_LABEL[availability] ?? "Unavailable"
+                  : added
+                    ? "Added to bag"
+                    : "Add to bag"}
               </Button>
             </div>
             <p className="mt-3 text-[0.7rem] uppercase tracking-[var(--tracking-wide)] text-smoke">
-              Checkout arrives in a later phase
+              {purchasable
+                ? "Cash on delivery. Shipping arranged when we call."
+                : "Write to the atelier to be notified."}
             </p>
           </Reveal>
         </div>

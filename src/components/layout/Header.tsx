@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Navigation } from "./Navigation";
 import { MobileMenu } from "./MobileMenu";
 import { Logo } from "./Logo";
+import { CartButton } from "@/components/cart/CartButton";
 
 interface HeaderProps {
   settings: SiteSettings;
@@ -55,13 +56,14 @@ export function Header({ settings }: HeaderProps) {
             <Navigation links={settings.primaryNav} />
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5 sm:gap-6">
             <Link
               href="/collection"
               className="hidden text-[0.7rem] uppercase tracking-[var(--tracking-wide)] text-ivory-dim transition-colors duration-500 hover:text-ivory sm:block"
             >
               Shop
             </Link>
+            <CartButton />
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
