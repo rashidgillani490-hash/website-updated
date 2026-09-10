@@ -18,6 +18,41 @@ function isAllowed(type: string): type is (typeof ALLOWED_IMAGE_TYPES)[number] {
   return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(type);
 }
 
+const ascii = (b: Uint8Array, start: number, text: string): boolean =>
+  [...text].every((ch, i) => b[start + i] === ch.charCodeAt(0));
+
+/**
+ * Sniff the real image type from the file's leading bytes. `File.type` is
+ * client-supplied and trivially spoofed, so an upload is only accepted if its
+ * magic number actually matches a real raster format — this blocks an HTML /
+ * SVG / script payload dressed up as `image/png`.
+ */
+function sniffImageType(bytes: Uint8Array): (typeof ALLOWED_IMAGE_TYPES)[number] | null {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    bytes[0] === 0x89 &&
+    ascii(bytes, 1, "PNG") &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a
+  ) {
+    return "image/png";
+  }
+  if (ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WEBP")) {
+    return "image/webp";
+  }
+  if (
+    ascii(bytes, 4, "ftyp") &&
+    ["avif", "avis", "mif1", "miaf", "msf1"].some((brand) =>
+      ascii(bytes, 8, brand),
+    )
+  ) {
+    return "image/avif";
+  }
+  return null;
+}
+
 /**
  * Validate and upload one image to the `perfume-images` bucket. Normal image
  * files only — JPEG / PNG / WebP / AVIF; no 3D model formats are accepted.
@@ -39,12 +74,21 @@ export async function uploadPerfumeImage(
     return { ok: false, error: "Image must be 5 MB or smaller." };
   }
 
+  // Trust the bytes, not the label: reject anything whose magic number is not a
+  // real raster image, and store it as the sniffed type rather than the claimed
+  // one.
+  const head = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  const realType = sniffImageType(head);
+  if (!realType) {
+    return { ok: false, error: "That file is not a JPEG, PNG, WebP or AVIF image." };
+  }
+
   const safeSlug = slug.replace(/[^a-z0-9-]/gi, "").toLowerCase() || "perfume";
-  const key = `${safeSlug}/${crypto.randomUUID()}.${EXT[file.type] ?? "img"}`;
+  const key = `${safeSlug}/${crypto.randomUUID()}.${EXT[realType]}`;
 
   const { error } = await db.storage
     .from(IMAGE_BUCKET)
-    .upload(key, file, { contentType: file.type, upsert: false });
+    .upload(key, file, { contentType: realType, upsert: false });
 
   if (error) {
     console.error("[storage] upload failed:", error.message);

@@ -24,6 +24,11 @@ export type ActionResult =
   | { ok: true }
   | { ok: false; error?: string; fieldErrors?: Record<string, string> };
 
+/** Every admin record id is a database UUID. Guard the loose `string` params
+ *  that Server Actions receive from the client before they reach a query. */
+const uuid = z.string().uuid();
+const INVALID_ID: ActionResult = { ok: false, error: "Invalid request." };
+
 /**
  * Settings and the perfume catalogue both feed the shared root layout
  * (header, footer, metadata, home). One `revalidatePath` call covers the whole
@@ -80,6 +85,7 @@ export async function updatePerfume(
   payload: unknown,
 ): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
+  if (!uuid.safeParse(id).success) return INVALID_ID;
   const parsed = perfumePayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return { ok: false, fieldErrors: fieldErrors(parsed.error) };
@@ -112,6 +118,7 @@ export async function patchPerfume(
   patch: unknown,
 ): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
+  if (!uuid.safeParse(id).success) return INVALID_ID;
   const parsed = patchSchema.safeParse(patch);
   if (!parsed.success) return { ok: false, error: "Invalid change." };
   const result = await new AdminRepository(supabase).patchPerfume(
@@ -126,6 +133,7 @@ export async function patchPerfume(
 
 export async function deletePerfume(id: string): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
+  if (!uuid.safeParse(id).success) return INVALID_ID;
   const repo = new AdminRepository(supabase);
 
   // Best-effort: remove Storage files before the rows cascade away.
@@ -143,8 +151,11 @@ export async function deletePerfume(id: string): Promise<ActionResult> {
 /* ==================================================================== images */
 
 const uploadMetaSchema = z.object({
-  perfumeId: z.string().min(1),
-  slug: z.string().min(1),
+  perfumeId: z.string().uuid(),
+  slug: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Invalid slug."),
   role: imageRoleEnum,
   alt: z.string().trim().max(200).default(""),
 });
@@ -204,6 +215,9 @@ export async function deleteImage(
   imageId: string,
 ): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
+  if (!uuid.safeParse(perfumeId).success || !uuid.safeParse(imageId).success) {
+    return INVALID_ID;
+  }
   const repo = new AdminRepository(supabase);
 
   const path = await repo.getImagePath(imageId);
@@ -225,6 +239,9 @@ export async function updateImageAlt(
   alt: unknown,
 ): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
+  if (!uuid.safeParse(perfumeId).success || !uuid.safeParse(imageId).success) {
+    return INVALID_ID;
+  }
   const parsed = z.string().trim().max(200).safeParse(alt);
   if (!parsed.success) return { ok: false, error: "Description is too long." };
   const result = await new AdminRepository(supabase).updateImageMeta(imageId, {
@@ -241,7 +258,8 @@ export async function reorderImages(
   orderedIds: unknown,
 ): Promise<ActionResult> {
   const { supabase } = await requireAdmin();
-  const parsed = z.array(z.string().min(1)).safeParse(orderedIds);
+  if (!uuid.safeParse(perfumeId).success) return INVALID_ID;
+  const parsed = z.array(uuid).min(1).max(24).safeParse(orderedIds);
   if (!parsed.success) return { ok: false, error: "Invalid order." };
   const result = await new AdminRepository(supabase).reorderImages(
     perfumeId,

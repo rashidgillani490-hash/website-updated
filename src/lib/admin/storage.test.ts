@@ -20,8 +20,14 @@ function fakeStorage(behaviour: {
   return { db, upload, remove };
 }
 
-const png = (bytes: number) =>
-  new File([new Uint8Array(bytes)], "flacon.png", { type: "image/png" });
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/** A File whose leading bytes are a real PNG signature, padded to `bytes`. */
+const png = (bytes: number) => {
+  const buf = new Uint8Array(Math.max(bytes, 0));
+  buf.set(PNG_MAGIC.slice(0, buf.length));
+  return new File([buf], "flacon.png", { type: "image/png" });
+};
 
 describe("uploadPerfumeImage", () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
@@ -43,6 +49,19 @@ describe("uploadPerfumeImage", () => {
     });
     const result = await uploadPerfumeImage(db, "noir", model);
     expect(result.ok).toBe(false);
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("rejects a file whose bytes are not a real image (spoofed type)", async () => {
+    const { db, upload } = fakeStorage({});
+    const spoof = new File(
+      [new TextEncoder().encode("<script>alert(1)</script>")],
+      "evil.png",
+      { type: "image/png" },
+    );
+    const result = await uploadPerfumeImage(db, "noir", spoof);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/not a jpeg|not a .*image/i);
     expect(upload).not.toHaveBeenCalled();
   });
 
