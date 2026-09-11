@@ -2,9 +2,15 @@
 
 import { Suspense, useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Float, PerspectiveCamera } from "@react-three/drei";
+import {
+  ContactShadows,
+  Float,
+  OrbitControls,
+  PerspectiveCamera,
+} from "@react-three/drei";
 import type { MotionValue } from "motion/react";
 import { PerfumeBottle } from "./PerfumeBottle";
+import { SceneBackdrop } from "./SceneBackdrop";
 import { SceneEnvironment } from "./SceneEnvironment";
 import { ScrollDirector } from "./ScrollDirector";
 import { SprayParticles } from "./SprayParticles";
@@ -62,7 +68,18 @@ export default function PerfumeCanvas({
 
   // One stable pose object for the whole scene lifetime — ScrollDirector writes
   // it, PerfumeBottle and SprayParticles read it, no React state involved.
-  const pose = useRef<StoryPose>({ spin: 0, capLift: 0, spray: 0, dolly: 0 });
+  const pose = useRef<StoryPose>({
+    spin: 0,
+    capLift: 0,
+    spray: 0,
+    dolly: 0,
+    posX: 0,
+    posY: 0,
+    scale: 1,
+    emphasis: 0,
+    fov: 38,
+    camX: 0,
+  });
 
   return (
     <Canvas
@@ -77,6 +94,9 @@ export default function PerfumeCanvas({
       }}
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0);
+        // Luminous rework: a modest exposure lift on top of R3F's default
+        // ACES tone mapping (kept — not switched to a different curve).
+        gl.toneMappingExposure = 1.12;
         onCreated?.();
       }}
       eventPrefix="client"
@@ -85,6 +105,18 @@ export default function PerfumeCanvas({
       <FrameManager animate={animate} />
       <PerspectiveCamera makeDefault position={[0, 0.4, 6]} fov={38} />
       <Suspense fallback={null}>
+        {/* The cinematic environment — a graded field + light pools behind the
+            flacon, its brightness scroll-synchronized via the same shared
+            `pose` <ScrollDirector> already writes (no second scroll system).
+            Homepage story only; the detail-page "showcase" keeps its own flat
+            `bg-studio` stage (see PerfumeDetail.tsx) showing through the
+            transparent canvas — same bright palette, no backdrop mesh (the
+            canvas there stays constrained to its own box, not full-bleed).
+            Gated the same way as <SprayParticles> below. */}
+        {storyMode === "cinematic" ? (
+          <SceneBackdrop accent={accent} pose={pose} />
+        ) : null}
+
         <SceneEnvironment
           resolution={quality.envResolution}
           shadowMapSize={quality.shadowMapSize}
@@ -98,6 +130,28 @@ export default function PerfumeCanvas({
             mode={storyMode as StoryMode}
             reducedMotion={reducedMotion}
             active={active}
+            cameraControlled={storyMode === "showcase"}
+          />
+        ) : null}
+
+        {/* Detail page only: lets the user drag to orbit the camera around
+            the flacon for a closer look. Rotate-only (no zoom/pan) — zoom
+            would hijack the page's normal wheel-scroll while the cursor is
+            over the panel, and pan would let the bottle drift out of frame.
+            <ScrollDirector> yields camera position/orientation to this
+            (`cameraControlled` above) so the two never fight over the same
+            frame; the object's own scroll-linked turn and the camera's
+            scroll-linked FOV are untouched and keep working alongside it. */}
+        {storyMode === "showcase" ? (
+          <OrbitControls
+            target={[0, 0.3, 0]}
+            enableRotate
+            enableZoom={false}
+            enablePan={false}
+            enableDamping
+            dampingFactor={0.08}
+            minPolarAngle={0.65}
+            maxPolarAngle={2.3}
           />
         ) : null}
 
@@ -126,7 +180,7 @@ export default function PerfumeCanvas({
 
         <ContactShadows
           position={[0, -1.7, 0]}
-          opacity={0.45}
+          opacity={0.55}
           scale={quality.contactShadowScale}
           blur={2.6}
           far={4}

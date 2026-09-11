@@ -3,7 +3,6 @@ import { contentRepository } from "@/lib/content";
 import { splitLines } from "@/lib/utils";
 import { baseOpenGraph } from "@/lib/seo";
 import { CinematicPerfumeStory } from "@/components/home/CinematicPerfumeStory";
-import { ScrollStory } from "@/components/home/ScrollStory";
 import { FeaturedCollection } from "@/components/home/FeaturedCollection";
 import { NotesPhilosophy } from "@/components/home/NotesPhilosophy";
 import { Invitation } from "@/components/home/Invitation";
@@ -79,13 +78,10 @@ export default async function HomePage() {
         accent={opener?.accent ?? "#c7ac7c"}
         poster={opener?.hero.src ?? "/images/grain.svg"}
         posterAlt={opener?.hero.alt ?? settings.brandName}
-      />
-
-      <ScrollStory
-        eyebrow="The house"
-        heading="A small house, run deliberately slowly"
-        intro={settings.homepageIntro?.trim() || undefined}
-        steps={STORY_STEPS}
+        houseEyebrow="The house"
+        houseHeading="A small house, run deliberately slowly"
+        houseIntro={settings.homepageIntro?.trim() || undefined}
+        houseSteps={STORY_STEPS}
       />
 
       <FeaturedCollection

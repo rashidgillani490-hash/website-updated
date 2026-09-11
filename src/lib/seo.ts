@@ -1,16 +1,25 @@
 /**
- * Canonical site origin, resolved from the environment. Used only by
- * server-side metadata / `sitemap.ts` / `robots.ts`.
+ * Canonical site origin, resolved from the environment. Read only on the server
+ * — by root/route `generateMetadata`, `sitemap.ts` and `robots.ts`.
  *
  * Precedence:
- *   1. SITE_URL              — runtime env var, no rebuild needed on change
- *   2. NEXT_PUBLIC_SITE_URL  — build-time equivalent (convention)
- *   3. VERCEL_PROJECT_PRODUCTION_URL / VERCEL_URL — automatic on Vercel
- *   4. http://localhost:3000 — local / not-yet-configured fallback
+ *   1. SITE_URL — plain (NOT `NEXT_PUBLIC_`) runtime env var. Read on every
+ *      server render: `robots` / `sitemap` are `force-dynamic` so they pick it
+ *      up per request; the marketing pages carry it through ISR and refresh it
+ *      within their revalidate window. Changing the domain needs a redeploy or
+ *      one revalidation cycle — never a code rebuild.
+ *   2. VERCEL_PROJECT_PRODUCTION_URL — stable production domain, injected by
+ *      Vercel at build and runtime in every environment (correct for canonical
+ *      even on preview deployments).
+ *   3. VERCEL_URL — per-deployment host; last resort before localhost.
+ *   4. http://localhost:3000 — local / not-yet-configured fallback.
  *
- * Nothing hardcodes the final domain: until an env var is set, metadata,
- * canonical links and the sitemap all point at localhost, which is harmless and
- * flips to the real values the moment the domain is configured.
+ * Deliberately no `NEXT_PUBLIC_SITE_URL`: this value is never needed in the
+ * browser, and the public variant would be inlined into the client bundle at
+ * build time — the exact "baked in" behaviour we want to avoid. Nothing
+ * hardcodes the final domain: until `SITE_URL` (or a Vercel var) is set,
+ * metadata, canonical links and the sitemap point at localhost, which is
+ * harmless and flips to the real values the moment the domain is configured.
  */
 
 const LOCAL_FALLBACK = "http://localhost:3000";
@@ -21,8 +30,7 @@ function normalise(value: string): string {
 }
 
 export function getSiteUrl(): string {
-  const explicit =
-    process.env.SITE_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const explicit = process.env.SITE_URL?.trim();
   if (explicit) return normalise(explicit);
 
   const vercel = (

@@ -48,7 +48,7 @@ git-ignored; **only `.env.example` is tracked — never put real keys in it.**
 | `NEXT_PUBLIC_SUPABASE_URL` | public | admin panel, real content; **also read at build time** for the CSP + `next/image` host — set it before `next build` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | admin panel, real content (RLS-constrained) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **server only** | writing checkout orders. In `NODE_ENV=production` the checkout **refuses** an order if this is missing (it will not silently drop it). Never `NEXT_PUBLIC_`. |
-| `SITE_URL` | public | canonical / OG / sitemap / robots URLs. Optional; falls back to Vercel vars, then `http://localhost:3000`. |
+| `SITE_URL` | **server only** | canonical / OG / sitemap / robots URLs. Runtime var — no `NEXT_PUBLIC_` copy, no rebuild needed to change the domain. Optional; falls back to `VERCEL_PROJECT_PRODUCTION_URL` / `VERCEL_URL`, then `http://localhost:3000`. On Vercel set it for all environments. |
 
 ## Create an admin
 

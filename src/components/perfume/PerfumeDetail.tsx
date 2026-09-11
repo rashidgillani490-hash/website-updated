@@ -75,7 +75,7 @@ export function PerfumeDetail({ perfume, settings }: PerfumeDetailProps) {
       >
         <div
           ref={stageRef}
-          className="relative order-2 h-[60svh] min-h-[420px] overflow-hidden bg-ink-700 lg:order-1 lg:h-[80svh]"
+          className="relative order-2 h-[60svh] min-h-[420px] overflow-hidden bg-studio lg:order-1 lg:h-[80svh]"
         >
           <PerfumeExperience
             accent={perfume.accent}

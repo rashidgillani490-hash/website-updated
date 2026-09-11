@@ -3,7 +3,10 @@
 /*
  * Maison Lumière — design tokens
  * A restrained luxury palette: deep ink grounds, warm ivory light,
- * a single champagne-gold accent. No decorative gradients.
+ * a single champagne-gold accent. --color-midnight is the poster / no-WebGL
+ * fallback tone (see body::before below) and the page-wide ground between
+ * opaque sections — the cinematic stage's own environment is owned by WebGL
+ * (see three/SceneBackdrop.tsx), not by a CSS layer competing behind it.
  */
 @theme {
   --color-ink: #0a0a0b;
@@ -11,6 +14,17 @@
   --color-ink-700: #17171a;
   --color-ink-600: #1f1f23;
   --color-line: #2a2a2f;
+
+  /* Cinematic backdrop only — a barely-there midnight-blue lift on the
+     charcoal ground. Kept this dark on purpose: it reads as depth, not colour. */
+  --color-midnight: #0b0f1a;
+
+  /* Bright premium studio tone — matches three/SceneBackdrop.tsx's palette
+     (sky #f8f6f2 / floor #dfdcd4), sat between the two. Used as the detail
+     page's showcase-stage background (the WebGL canvas there is transparent
+     and carries no backdrop mesh of its own, so this IS the visible ground
+     behind the flacon) so it reads as the same studio, not a different one. */
+  --color-studio: #f2f0ea;
 
   --color-ivory: #f5f1e8;
   --color-ivory-dim: #cfc9bb;
@@ -32,6 +46,22 @@
 
 :root {
   color-scheme: dark;
+
+  /*
+   * Layer scale for the cinematic story. One intentional stack, referenced by
+   * name from the components so the ordering is legible and not a pile of
+   * competing magic numbers:
+   *   scene     — the WebGL canvas (owns its own environment) / poster
+   *   scrim     — legibility wash between the object and the type
+   *   caption   — the cross-faded copy layers
+   *   chrome    — scroll cue + progress rail
+   * The site Header sits at Tailwind `z-40`; nothing here reaches it (it also
+   * recedes on scroll into the cinematic stage — see layout/Header.tsx).
+   */
+  --z-scene: 10;
+  --z-scrim: 20;
+  --z-caption: 30;
+  --z-chrome: 40;
 }
 
 * {
@@ -50,6 +80,30 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: "kern", "liga", "calt";
   overflow-x: hidden;
+}
+
+/*
+ * Viewport-anchored ambient ground. A near-black charcoal→midnight wash that
+ * sits *above* the solid body fill but *below* all content (z-index:-1), so the
+ * space between the opaque editorial sections — and any section that opts out of
+ * a solid fill — shares one continuous cinematic tone rather than flat black.
+ * Fixed to the viewport (not the scroll height) so it never stretches or seams.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Same palette as the WebGL backdrop (see SceneBackdrop): a midnight-blue
+     lift at the top easing down to a near-black charcoal floor. */
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      color-mix(in srgb, var(--color-midnight) 70%, transparent) 0%,
+      transparent 58%
+    ),
+    linear-gradient(180deg, var(--color-midnight) 0%, #070709 100%);
 }
 
 ::selection {
@@ -130,6 +184,53 @@ body {
   }
   50% {
     transform: scaleY(1);
+  }
+}
+
+/*
+ * Legibility wash between the flacon and the type. Sits *over* the WebGL
+ * render purely to keep the ivory/champagne caption copy readable — it is
+ * not standing in for any background of its own.
+ *
+ * SceneBackdrop is now a BRIGHT studio (warm ivory/silver), a deliberate
+ * change from the earlier dark register — so this wash has to do real work:
+ * a near-opaque zone directly behind the type column, easing to fully clear
+ * well before the flacon's own position, so light-on-dark text stays legible
+ * while the majority of the frame (where the object sits) reads as the bright
+ * environment, unobstructed.
+ * Small screens (default): the canvas is full-bleed, so a top/bottom
+ * darkening keeps the header and progress rail readable while the centre —
+ * where the flacon sits — stays clearer, plus a strong fade on the type side.
+ * ≥lg: the canvas is full-bleed too (the flacon's own scroll-driven
+ * posX/camera framing keeps it clear of the type column instead of a DOM
+ * split), so the type-side wash carries the whole job here.
+ */
+.story-scrim {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-ink) 65%, transparent) 0%,
+      color-mix(in srgb, var(--color-ink) 18%, transparent) 42%,
+      color-mix(in srgb, var(--color-ink) 60%, transparent) 100%
+    ),
+    linear-gradient(
+      96deg,
+      var(--color-ink) 0%,
+      color-mix(in srgb, var(--color-ink) 78%, transparent) 26%,
+      color-mix(in srgb, var(--color-ink) 30%, transparent) 46%,
+      transparent 64%
+    );
+}
+
+@media (min-width: 1024px) {
+  .story-scrim {
+    background: linear-gradient(
+      100deg,
+      var(--color-ink) 0%,
+      color-mix(in srgb, var(--color-ink) 85%, transparent) 24%,
+      color-mix(in srgb, var(--color-ink) 40%, transparent) 42%,
+      transparent 62%
+    );
   }
 }
 

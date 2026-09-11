@@ -31,7 +31,10 @@ const DESKTOP: QualityProfile = {
   dpr: [1, 1.75],
   shadows: true,
   shadowMapSize: 1024,
-  envResolution: 256,
+  // Bumped for the luminous rework — sharper specular reflections on the
+  // glass/clearcoat/metal. Still baked once at mount, not per frame, so the
+  // cost is a one-time cubemap render, not an ongoing one.
+  envResolution: 384,
   contactShadowScale: 9,
   bakeContactShadow: false,
   antialias: true,
@@ -43,7 +46,7 @@ const MOBILE: QualityProfile = {
   dpr: [1, 1.5],
   shadows: false, // ContactShadows alone still grounds the flacon
   shadowMapSize: 512,
-  envResolution: 128,
+  envResolution: 160,
   contactShadowScale: 8,
   bakeContactShadow: true,
   antialias: true,

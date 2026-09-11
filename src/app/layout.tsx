@@ -26,8 +26,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `${settings.brandName} — ${settings.tagline}`;
 
   return {
-    // Resolved from NEXT_PUBLIC_SITE_URL (or Vercel), localhost until set — no
-    // domain is hardcoded. Makes every relative OG image / canonical absolute.
+    // Resolved from the runtime SITE_URL env var (or Vercel's production URL),
+    // localhost until set — no domain is hardcoded. Makes every relative OG
+    // image / canonical absolute.
     metadataBase: new URL(getSiteUrl()),
     title: {
       default: title,
