@@ -32,7 +32,7 @@ export function LoginForm() {
       </Field>
 
       {state.error ? (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-red-600">
           {state.error}
         </p>
       ) : null}

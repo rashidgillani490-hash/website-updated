@@ -234,3 +234,40 @@ body::before {
   }
 }
 
+/*
+ * Admin theme override — the storefront is a dark cinematic stage, but the
+ * admin panel is a bright, Apple-style workspace. Rather than fork the admin
+ * components onto a second set of classes, this re-points the same semantic
+ * tokens (ink = ground, ivory = ink, champagne = accent) that every admin
+ * component already uses, scoped to this one wrapper class. Applied once, in
+ * src/app/admin/layout.tsx, so the whole /admin subtree (login + protected)
+ * relights automatically — no component-level duplication, no risk to the
+ * storefront's dark tokens outside this scope.
+ */
+.admin-theme {
+  color-scheme: light;
+
+  --color-ink: #ffffff;
+  --color-ink-800: #faf9f6;
+  --color-ink-700: #f3f1ea;
+  --color-ink-600: #eae7dd;
+  --color-line: #e3dfd4;
+
+  --color-ivory: #17160f;
+  --color-ivory-dim: #57534a;
+  --color-smoke: #78736a;
+
+  --color-champagne: #8a6a35;
+  --color-champagne-bright: #6c5228;
+}
+
+/* Card- and field-like surfaces (anything on the ink-800 fill) read as soft
+   Apple-style panels: rounded corners + a barely-there shadow instead of the
+   flat dark-mode fill. */
+.admin-theme .bg-ink-800 {
+  border-radius: 0.5rem;
+  box-shadow:
+    0 1px 2px rgba(23, 22, 15, 0.04),
+    0 6px 16px rgba(23, 22, 15, 0.05);
+}
+

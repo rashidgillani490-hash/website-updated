@@ -55,9 +55,9 @@ export function OrderStatusControl({ id, status, variant = "full" }: Props) {
         ))}
       </select>
       {error ? (
-        <span className="text-[0.65rem] text-red-400">{error}</span>
+        <span className="text-[0.65rem] text-red-600">{error}</span>
       ) : saved ? (
-        <span className="text-[0.65rem] text-emerald-300">Saved</span>
+        <span className="text-[0.65rem] text-emerald-700">Saved</span>
       ) : null}
     </div>
   );

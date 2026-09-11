@@ -112,12 +112,12 @@ export function PerfumeRowActions({
           type="button"
           disabled={pending}
           onClick={onDelete}
-          className="border border-line px-2 py-1 text-[0.6rem] uppercase tracking-[var(--tracking-wide)] text-ivory-dim hover:border-red-400 hover:text-red-400 disabled:opacity-30"
+          className="border border-line px-2 py-1 text-[0.6rem] uppercase tracking-[var(--tracking-wide)] text-ivory-dim hover:border-red-600 hover:text-red-600 disabled:opacity-30"
         >
           Delete
         </button>
       </div>
-      {error ? <span className="text-[0.65rem] text-red-400">{error}</span> : null}
+      {error ? <span className="text-[0.65rem] text-red-600">{error}</span> : null}
     </div>
   );
 }

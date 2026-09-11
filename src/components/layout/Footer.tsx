@@ -71,7 +71,16 @@ export function Footer({ settings }: FooterProps) {
           <span>
             &copy; {year} {settings.brandName}. All rights reserved.
           </span>
-          <span>Made in France</span>
+          <div className="flex items-center gap-4">
+            <span>Made in France</span>
+            <span aria-hidden className="h-3 w-px bg-line" />
+            <Link
+              href="/admin/login"
+              className="text-smoke transition-colors duration-500 hover:text-champagne"
+            >
+              Client Login
+            </Link>
+          </div>
         </div>
       </Container>
     </footer>

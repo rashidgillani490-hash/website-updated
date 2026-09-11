@@ -90,7 +90,7 @@ export function SizesEditor({ value, onChange, error }: SizesEditorProps) {
                 onClick={() => onChange(value.filter((_, idx) => idx !== i))}
                 disabled={value.length <= 1}
                 aria-label="Remove size"
-                className="border border-line px-2 py-2 text-xs text-ivory-dim hover:border-red-400 hover:text-red-400 disabled:opacity-30"
+                className="border border-line px-2 py-2 text-xs text-ivory-dim hover:border-red-600 hover:text-red-600 disabled:opacity-30"
               >
                 ✕
               </button>
@@ -99,7 +99,7 @@ export function SizesEditor({ value, onChange, error }: SizesEditorProps) {
         ))}
       </div>
 
-      {error ? <span className="text-xs text-red-400">{error}</span> : null}
+      {error ? <span className="text-xs text-red-600">{error}</span> : null}
 
       <p className="text-xs text-smoke">
         Stock is optional — leave it blank to keep a size always available. A

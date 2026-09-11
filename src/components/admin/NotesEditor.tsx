@@ -107,7 +107,7 @@ export function NotesEditor({ value, onChange, error }: NotesEditorProps) {
                     type="button"
                     onClick={() => remove(index)}
                     aria-label="Remove note"
-                    className="border border-line px-2 py-2 text-xs text-ivory-dim hover:border-red-400 hover:text-red-400"
+                    className="border border-line px-2 py-2 text-xs text-ivory-dim hover:border-red-600 hover:text-red-600"
                   >
                     ✕
                   </button>
@@ -124,7 +124,7 @@ export function NotesEditor({ value, onChange, error }: NotesEditorProps) {
           </div>
         );
       })}
-      {error ? <span className="text-xs text-red-400">{error}</span> : null}
+      {error ? <span className="text-xs text-red-600">{error}</span> : null}
     </div>
   );
 }

@@ -51,7 +51,7 @@ export function Field({
       </label>
       {children}
       {error ? (
-        <span role="alert" className="text-xs text-red-400">
+        <span role="alert" className="text-xs text-red-600">
           {error}
         </span>
       ) : hint ? (
@@ -149,11 +149,11 @@ export function SubmitBar({
     <div className="sticky bottom-0 z-10 mt-4 flex flex-col gap-3 border-t border-line bg-ink/90 py-5 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
       <p className="text-xs" aria-live="polite">
         {error ? (
-          <span className="text-red-400">{error}</span>
+          <span className="text-red-600">{error}</span>
         ) : pending ? (
           <span className="text-smoke">Saving…</span>
         ) : saved ? (
-          <span className="text-green-400">Saved.</span>
+          <span className="text-green-700">Saved.</span>
         ) : dirty ? (
           <span className="text-smoke">Unsaved changes</span>
         ) : (

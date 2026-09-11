@@ -76,7 +76,7 @@ export function PerfumeImages({ perfumeId, slug, images }: PerfumeImagesProps) {
   return (
     <div className="flex flex-col gap-8">
       {error ? (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-red-600">
           {error}
         </p>
       ) : null}
@@ -116,7 +116,7 @@ export function PerfumeImages({ perfumeId, slug, images }: PerfumeImagesProps) {
                 type="button"
                 disabled={pending}
                 onClick={() => run(() => deleteImage(perfumeId, hero.id))}
-                className="w-fit text-[0.6rem] uppercase tracking-[var(--tracking-wide)] text-smoke transition-colors duration-300 hover:text-red-400 disabled:opacity-40"
+                className="w-fit text-[0.6rem] uppercase tracking-[var(--tracking-wide)] text-smoke transition-colors duration-300 hover:text-red-600 disabled:opacity-40"
               >
                 Remove
               </button>
@@ -204,7 +204,7 @@ export function PerfumeImages({ perfumeId, slug, images }: PerfumeImagesProps) {
                     disabled={pending}
                     aria-label="Delete image"
                     onClick={() => run(() => deleteImage(perfumeId, img.id))}
-                    className="border border-line px-2 py-1 text-xs text-ivory-dim hover:border-red-400 hover:text-red-400 disabled:opacity-30"
+                    className="border border-line px-2 py-1 text-xs text-ivory-dim hover:border-red-600 hover:text-red-600 disabled:opacity-30"
                   >
                     ✕
                   </button>
